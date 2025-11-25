@@ -1,4 +1,4 @@
-# ScanX
+# Scathat
 
 Your AI-powered shield that stops smart contract scams before they happen.
 Fast. Real-time. Onchain security for everyone.
@@ -22,11 +22,10 @@ Current auditing tools are slow, expensive, and reactive
 
 
 People only realize they were hacked after pressing confirm.
-ScanX fixes this.
+Scathat fixes this.
 
 The Solution
-ScanX
-
+Scathat
 AI that analyzes smart contracts in real time and protects users before they sign.
 What it does:
 Scans contracts instantly
@@ -118,7 +117,7 @@ Long-term vision:
 Become the security layer for every Base app and smart wallet.
 
 
-ScanX: Because mass adoption needs protection  not permission.
+Scathat: Because mass adoption needs protection  not permission.
 
 User submits contract address → via web app or extension
 

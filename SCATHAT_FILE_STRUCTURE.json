@@ -1,0 +1,125 @@
+{
+  "name": "Scathat - Smart Contract Security AI",
+  "structure": {
+    "web": {
+      "description": "Main Next.js web application",
+      "directories": {
+        "app": {
+          "description": "Next.js app router",
+          "subdirectories": {
+            "(marketing)": "Landing page and public pages",
+            "dashboard": "Protected dashboard for authenticated users",
+            "auth": "Authentication pages (login/signup)",
+            "api": "API routes (backend)"
+          }
+        },
+        "components": {
+          "description": "React components organized by feature",
+          "subdirectories": {
+            "ui": "Reusable shadcn/ui components",
+            "marketing": "Landing page components (Header, Hero, Features, etc)",
+            "dashboard": "Dashboard-specific components (Scanner, Results, Stats)",
+            "auth": "Authentication components (Forms, Layouts)",
+            "common": "Shared components used across app"
+          }
+        },
+        "lib": {
+          "description": "Utility functions and helpers",
+          "files": {
+            "utils.ts": "Common utilities and cn() function",
+            "api.ts": "API client functions",
+            "constants.ts": "App-wide constants"
+          }
+        },
+        "styles": {
+          "description": "Global styles",
+          "files": {
+            "globals.css": "Tailwind and global styles"
+          }
+        },
+        "hooks": {
+          "description": "Custom React hooks",
+          "files": {
+            "use-auth.ts": "Authentication hook",
+            "use-scan.ts": "Contract scanning hook"
+          }
+        },
+        "public": {
+          "description": "Static assets",
+          "subdirectories": {
+            "icons": "App icons",
+            "images": "Images and SVGs"
+          }
+        }
+      }
+    },
+    "extension": {
+      "description": "Chrome/Firefox browser extension",
+      "directories": {
+        "src": {
+          "subdirectories": {
+            "background": "Background service worker scripts",
+            "content": "Content scripts injected into pages",
+            "popup": "Extension popup UI (React component)",
+            "components": "Reusable components for popup",
+            "utils": "Extension utilities and helpers",
+            "types": "TypeScript type definitions",
+            "assets": "Extension assets and icons"
+          }
+        },
+        "public": {
+          "files": {
+            "manifest.json": "Extension manifest file",
+            "icons": "Extension icons (16x16, 48x48, 128x128)"
+          }
+        },
+        "dist": {
+          "description": "Build output directory (auto-generated)"
+        }
+      },
+      "key_files": {
+        "manifest.json": "Extension configuration and permissions",
+        "content-script.ts": "Injected script for page interaction",
+        "background.ts": "Long-running background service",
+        "popup.tsx": "Extension popup UI"
+      }
+    },
+    "shared": {
+      "description": "Shared utilities between web and extension",
+      "subdirectories": {
+        "types": "Shared TypeScript types and interfaces",
+        "utils": "Shared utility functions",
+        "constants": "Shared constants and config",
+        "api": "API types and client utilities"
+      }
+    },
+    "scripts": {
+      "description": "Database and utility scripts",
+      "files": {
+        "setup-db.sql": "Database schema setup",
+        "seed-data.ts": "Seed sample data"
+      }
+    }
+  },
+  "key_conventions": {
+    "naming": {
+      "components": "PascalCase (Header, HowItWorks)",
+      "files": "kebab-case (header.tsx, how-it-works.tsx)",
+      "utils": "camelCase (getContractInfo)",
+      "constants": "UPPER_SNAKE_CASE (MAX_CONTRACT_SIZE)"
+    },
+    "component_organization": "Features/pages get their own folders with index exports",
+    "styling": "Tailwind CSS with custom theme tokens in globals.css",
+    "data_fetching": "SWR for client-side, Server Components for SSR",
+    "state_management": "React hooks + SWR, upgrade to Context for global state if needed"
+  },
+  "mobile_support": {
+    "responsive": "Mobile-first design with Tailwind breakpoints (md:, lg:)",
+    "native_app": "Could use React Native sharing web app logic"
+  },
+  "deployment": {
+    "web": "Deploy to Vercel or any Node.js host",
+    "extension": "Build dist folder and upload to Chrome Web Store",
+    "shared": "Shared code imported by both"
+  }
+}

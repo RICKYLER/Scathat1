@@ -14,8 +14,14 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 contract ResultsRegistry is Ownable, ReentrancyGuard {
     using Strings for uint256;
     
+    // Risk level enum for AgentKit integration
+    enum RiskLevel { Safe, Warning, Dangerous }
+    
     // Mapping from a contract address to its risk score
     mapping(address => string) private _riskScores;
+    
+    // Mapping from a contract address to its risk level
+    mapping(address => RiskLevel) private _riskLevels;
     
     // Mapping to track authorized writers (besides owner)
     mapping(address => bool) private _authorizedWriters;
@@ -27,6 +33,7 @@ contract ResultsRegistry is Ownable, ReentrancyGuard {
     event ScoreRecorded(
         address indexed contractAddress, 
         string riskScore,
+        RiskLevel riskLevel,
         address indexed recordedBy,
         uint256 timestamp
     );
@@ -81,12 +88,14 @@ contract ResultsRegistry is Ownable, ReentrancyGuard {
      * @dev Write the risk score for a given contract address
      * @param _contractAddress The address of the contract to store the risk score for
      * @param _riskScore The risk score string to store
+     * @param _riskLevel The risk level enum for AgentKit integration
      * @notice Only callable by owner or authorized writers
      * @notice Implements reentrancy protection and comprehensive input validation
      */
     function writeRiskScore(
         address _contractAddress, 
-        string memory _riskScore
+        string memory _riskScore,
+        RiskLevel _riskLevel
     ) 
         external 
         nonReentrant 
@@ -112,10 +121,12 @@ contract ResultsRegistry is Ownable, ReentrancyGuard {
         );
         
         _riskScores[_contractAddress] = _riskScore;
+        _riskLevels[_contractAddress] = _riskLevel;
         
         emit ScoreRecorded(
             _contractAddress, 
             _riskScore, 
+            _riskLevel,
             msg.sender,
             block.timestamp
         );
@@ -125,10 +136,12 @@ contract ResultsRegistry is Ownable, ReentrancyGuard {
      * @dev Update an existing risk score (only owner)
      * @param _contractAddress The address of the contract to update
      * @param _riskScore The new risk score string
+     * @param _riskLevel The new risk level enum for AgentKit integration
      */
     function updateRiskScore(
         address _contractAddress, 
-        string memory _riskScore
+        string memory _riskScore,
+        RiskLevel _riskLevel
     ) 
         external 
         nonReentrant 
@@ -151,10 +164,12 @@ contract ResultsRegistry is Ownable, ReentrancyGuard {
         );
         
         _riskScores[_contractAddress] = _riskScore;
+        _riskLevels[_contractAddress] = _riskLevel;
         
         emit ScoreRecorded(
             _contractAddress, 
             _riskScore, 
+            _riskLevel,
             msg.sender,
             block.timestamp
         );
@@ -188,6 +203,25 @@ contract ResultsRegistry is Ownable, ReentrancyGuard {
     function hasRiskScore(address _contractAddress) external view returns (bool) {
         return bytes(_riskScores[_contractAddress]).length > 0;
     }
+
+    /**
+     * @dev Get the risk level for a given contract address
+     * @param _contractAddress The address of the contract to retrieve the risk level for
+     * @return RiskLevel The risk level enum for the given contract address
+     * @notice This function enables AgentKit to programmatically check risk levels
+     */
+    function getRiskLevel(address _contractAddress) 
+        external 
+        view 
+        returns (RiskLevel) 
+    {
+        require(_contractAddress != address(0), 
+            "ResultsRegistry: invalid contract address");
+        require(bytes(_riskScores[_contractAddress]).length > 0, 
+            "ResultsRegistry: no risk score found for this contract");
+        
+        return _riskLevels[_contractAddress];
+    }
     
     /**
      * @dev Emergency function to remove a risk score (only owner)
@@ -200,10 +234,12 @@ contract ResultsRegistry is Ownable, ReentrancyGuard {
             "ResultsRegistry: no score to remove");
         
         delete _riskScores[_contractAddress];
+        delete _riskLevels[_contractAddress];
         
         emit ScoreRecorded(
             _contractAddress, 
             "", 
+            RiskLevel.Safe, // Default to Safe when removing
             msg.sender,
             block.timestamp
         );

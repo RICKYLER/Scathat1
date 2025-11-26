@@ -4,7 +4,26 @@ import Link from "next/link"
 export function Hero() {
   return (
     <section className="relative w-full px-4 py-20 sm:py-32 lg:py-40">
-      <div className="mx-auto max-w-4xl space-y-8 text-center">
+      {/* Left-facing mirrored grass texture with soft fade */}
+      <div
+        className="absolute inset-y-0 left-0 right-0 pointer-events-none opacity-70"
+        style={{
+          backgroundImage: "url('/textures/grass-hero-left.png')",
+          backgroundSize: "cover",
+          backgroundPosition: "left center",
+          WebkitMaskImage: "linear-gradient(to right, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 85%)",
+          maskImage: "linear-gradient(to right, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 85%)",
+        }}
+      />
+
+      {/* Soft bokeh circles for hero ambiance */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-80 h-80 bg-emerald-500/12 rounded-full blur-3xl" />
+        <div className="absolute top-56 left-48 w-64 h-64 bg-green-400/12 rounded-full blur-3xl" />
+        <div className="absolute top-96 left-10 w-72 h-72 bg-lime-400/10 rounded-full blur-3xl" />
+      </div>
+
+      <div className="mx-auto max-w-4xl space-y-8 text-center relative z-10">
         <div className="space-y-4">
           <h1 className="text-balance text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl text-foreground">
             Who will protect you...

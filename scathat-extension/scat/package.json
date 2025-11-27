@@ -1,0 +1,28 @@
+{
+  "name": "scathat-extension",
+  "version": "1.0.0",
+  "description": "AI-powered real-time smart contract analysis and security protection browser extension",
+  "main": "src/popup/popup.js",
+  "scripts": {
+    "build": "webpack",
+    "dev": "webpack --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "ethers": "^6.8.0"
+  },
+  "devDependencies": {
+    "webpack": "^5.88.0",
+    "webpack-cli": "^5.1.4",
+    "copy-webpack-plugin": "^11.0.0"
+  },
+  "keywords": [
+    "browser-extension",
+    "web3",
+    "security",
+    "smart-contracts",
+    "ethereum"
+  ],
+  "author": "Scathat Team",
+  "license": "MIT"
+}

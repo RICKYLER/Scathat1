@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scathat - Smart Contract Security</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="popup-container">
+        <!-- Header Section -->
+        <div class="header">
+            <img src="../../assets/icons/icon-48.png" alt="Scathat Logo" class="logo">
+            <h1>Scathat</h1>
+            <div class="status-indicator" id="statusIndicator">
+                <span class="status-dot"></span>
+                <span class="status-text">Disconnected</span>
+            </div>
+        </div>
+
+        <!-- Connection Section -->
+        <div class="section" id="connectionSection">
+            <h2>Connect to Scathat</h2>
+            <p>Secure your web3 experience with AI-powered contract analysis</p>
+            
+            <!-- Wallet Connection Section -->
+            <div class="wallet-section">
+                <h3>Wallet Connection</h3>
+                <div class="wallet-status" id="walletStatus">
+                    <div class="wallet-indicator">
+                        <span class="wallet-dot" id="walletDot"></span>
+                        <span class="wallet-text" id="walletText">Not connected</span>
+                    </div>
+                    <div class="wallet-info" id="walletInfo" style="display: none;">
+                        <span class="wallet-address" id="walletAddress"></span>
+                        <span class="network-info" id="networkInfo"></span>
+                    </div>
+                </div>
+                
+                <div class="wallet-actions">
+                    <button id="connectWalletBtn" class="btn btn-primary">
+                        Connect Wallet
+                    </button>
+                    <button id="disconnectWalletBtn" class="btn btn-secondary" style="display: none;">
+                        Disconnect Wallet
+                    </button>
+                    <button id="switchNetworkBtn" class="btn btn-outline" style="display: none;">
+                        Switch to Base
+                    </button>
+                </div>
+            </div>
+
+            <div class="connection-form">
+                <input 
+                    type="text" 
+                    id="apiKey" 
+                    placeholder=" Paste Contract Address (optional)"
+                    class="input-field"
+                >
+                <button id="connectBtn" class="btn btn-primary">
+                    Connect to Scathat
+                </button>
+                <button id="disconnectBtn" class="btn btn-secondary" style="display: none;">
+                    Disconnect
+                </button>
+            </div>
+
+            <div class="quick-actions">
+                <button id="scanCurrentPage" class="btn btn-outline">
+                    Scan Current Page
+                </button>
+                <button id="openDashboard" class="btn btn-outline">
+                    Open Dashboard
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Section -->
+        <div class="section stats-section" id="statsSection" style="display: none;">
+            <h2>Protection Stats</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-number" id="scannedContracts">0</span>
+                    <span class="stat-label">Contracts Scanned</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="threatsBlocked">0</span>
+                    <span class="stat-label">Threats Blocked</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="savedFunds">$0</span>
+                    <span class="stat-label">Funds Protected</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="section" id="activitySection" style="display: none;">
+            <h2>Recent Activity</h2>
+            <div class="activity-list" id="activityList">
+                <div class="activity-item">
+                    <span class="activity-icon">🔍</span>
+                    <span class="activity-text">Ready to scan contracts</span>
+                    <span class="activity-time">Just now</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Section -->
+        <div class="section">
+            <h2>Settings</h2>
+            <div class="settings-list">
+                <label class="setting-toggle">
+                    <input type="checkbox" id="autoScanToggle" checked>
+                    <span class="toggle-slider"></span>
+                    Auto-scan pages
+                </label>
+                
+                <label class="setting-toggle">
+                    <input type="checkbox" id="notificationsToggle" checked>
+                    <span class="toggle-slider"></span>
+                    Show notifications
+                </label>
+
+                <label class="setting-toggle">
+                    <input type="checkbox" id="highlightToggle" checked>
+                    <span class="toggle-slider"></span>
+                    Highlight contracts
+                </label>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div class="version">v1.0.0</div>
+            <div class="links">
+                <a href="#" id="helpLink">Help</a>
+                <a href="#" id="feedbackLink">Feedback</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load ethers.js from CDN for wallet functionality -->
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"
+            integrity="sha384-0MvJpD5fL8pI1Rg+1VlVWpE+7vL6p+1VkL5a5p5p5p5p5p5p5p5p5p5p5p5p5p5p5"
+            crossorigin="anonymous"></script>
+    <script src="popup.js"></script>
+</body>
+</html>

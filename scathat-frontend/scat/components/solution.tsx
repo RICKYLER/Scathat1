@@ -85,7 +85,7 @@ export function Solution() {
                   transition: { duration: 0.2 }
                 }}
               >
-                <div className="text-sm text-muted-foreground">Target Users</div>
+                <div className="text-sm text-muted-foreground"></div>
                 <div className="font-bold text-foreground">{user.name}</div>
                 <p className="text-sm text-muted-foreground">{user.description}</p>
               </motion.div>

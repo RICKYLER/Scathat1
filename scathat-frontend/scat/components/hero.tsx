@@ -72,7 +72,7 @@ export function Hero() {
             transition={{ delay: 0.65 }}
           >
             <div className="text-2xl font-bold text-accent sm:text-3xl">AI-Powered</div>
-            <div className="text-xs text-muted-foreground sm:text-sm">Venice.ai technology</div>
+            <div className="text-xs text-muted-foreground sm:text-sm">Base AgentKit & Venice.ai</div>
           </motion.div>
           <motion.div 
             className="space-y-1"

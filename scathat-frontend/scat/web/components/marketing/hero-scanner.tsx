@@ -1,23 +1,35 @@
 "use client"
 
-/**
- * Hero Scanner Component
- *
- * Main hero section with contract scanner interface inspired by GoPlusLabs.
- * Features:
- * - Prominent contract address input field
- * - Scan button with loading state
- * - Mock results display with risk assessment
- * - Real-time scanning experience
- */
-
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { ArrowRight, AlertCircle, CheckCircle2, Zap } from "lucide-react"
+import { OrbShieldCanvas } from "@/components/three/OrbShieldCanvas"
+import Lottie from "lottie-react"
 
 export function HeroScanner() {
   const [contractAddress, setContractAddress] = useState("")
   const [isScanning, setIsScanning] = useState(false)
   const [scanResult, setScanResult] = useState(null)
+  const [scannerAnim, setScannerAnim] = useState<any>(null)
+  const [beamAnim, setBeamAnim] = useState<any>(null)
+
+  useEffect(() => {
+    let mounted = true
+    fetch("/lottie/scanner.json")
+      .then((r) => r.json())
+      .then((data) => {
+        if (mounted) setScannerAnim(data)
+      })
+      .catch(() => {})
+    fetch("/lottie/scanning_beam.json")
+      .then((r) => r.json())
+      .then((data) => {
+        if (mounted) setBeamAnim(data)
+      })
+      .catch(() => {})
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   const handleScan = async () => {
     if (!contractAddress) return
@@ -76,8 +88,24 @@ export function HeroScanner() {
           </p>
         </div>
 
-        {/* Scanner card */}
-        <div className="bg-[color:--color-surface]/80 border border-[color:--color-border] rounded-2xl p-8 shadow-2xl backdrop-blur-sm">
+        <div className="bg-[color:--color-surface]/80 border border-[color:--color-border] rounded-2xl p-8 shadow-2xl backdrop-blur-sm relative overflow-hidden">
+          {beamAnim && (
+            <div className="absolute inset-y-0 left-8 opacity-70 pointer-events-none">
+              <Lottie animationData={beamAnim} loop style={{ height: 200, width: 600 }} />
+            </div>
+          )}
+          <div className="grid md:grid-cols-2 gap-4 mb-6">
+            <div className="rounded-lg overflow-hidden border border-[color:--color-border]">
+              <OrbShieldCanvas useModels={false} height={240} />
+            </div>
+            <div className="rounded-lg overflow-hidden border border-[color:--color-border] bg-[color:--color-surface-light] flex items-center justify-center">
+              {scannerAnim ? (
+                <Lottie animationData={scannerAnim} loop style={{ height: 240 }} />
+              ) : (
+                <div className="text-[color:--color-text-secondary] text-sm">Loading animation...</div>
+              )}
+            </div>
+          </div>
           <div className="space-y-4">
             {/* Input field */}
             <div className="flex flex-col sm:flex-row gap-3">

@@ -1,4 +1,4 @@
-@import "tailwindcss";
+xc@import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
@@ -123,5 +123,51 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+.site-bg-fixed {
+  background-attachment: fixed;
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+
+.bg-aurora {
+  background-color: #0b1226;
+  background-image: url('/backgrounds/aurora-1920x1080.webp');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+
+.bg-metal {
+  background-color: #0b1226;
+  background-image: url('/backgrounds/metal-1920x1080.webp');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+
+@media (max-width: 768px) {
+  .bg-aurora { 
+    background-image: url('/backgrounds/aurora-1280x720.webp');
+  }
+  .bg-metal { 
+    background-image: url('/backgrounds/metal-1280x720.webp');
+  }
+}
+
+@supports (background-image: image-set(url('/backgrounds/aurora-1920x1080.webp') 1x type('image/webp'))) {
+  .bg-aurora {
+    background-image: image-set(url('/backgrounds/aurora-1920x1080.webp') 1x type('image/webp'));
+  }
+}
+
+@supports (background-image: image-set(url('/backgrounds/metal-1920x1080.webp') 1x type('image/webp'))) {
+  .bg-metal {
+    background-image: image-set(url('/backgrounds/metal-1920x1080.webp') 1x type('image/webp'));
   }
 }

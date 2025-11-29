@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { heroStagger, viewportConfig, heroItem } from "@/lib/animations/variants"
+import { OrbShieldCanvas } from "@/components/three/OrbShieldCanvas"
 
 export function Hero() {
   return (
@@ -36,6 +37,9 @@ export function Hero() {
             Millions lost yearly to hacks, rugpulls, and malicious approvals. Scathat protects you with AI-powered
             real-time smart contract analysis.
           </motion.p>
+          <div className="rounded-xl border border-border/50 overflow-hidden">
+            <OrbShieldCanvas useModels={false} height={280} />
+          </div>
       </motion.div>
 
       

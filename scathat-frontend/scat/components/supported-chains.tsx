@@ -68,6 +68,8 @@ type SupportedChainsProps = {
   accentFillAlpha?: number
   accentLoadAlpha?: number
   pauseOffscreen?: boolean
+  sweepDurationMs?: number
+  pulseDurationMs?: number
 }
 
 export function SupportedChains(props: SupportedChainsProps = {}) {
@@ -90,6 +92,8 @@ export function SupportedChains(props: SupportedChainsProps = {}) {
   const pauseOffscreen = props.pauseOffscreen ?? true
   const accentFill = `rgba(${accentRGB[0]},${accentRGB[1]},${accentRGB[2]},${accentFillAlpha})`
   const accentLoad = `rgba(${accentRGB[0]},${accentRGB[1]},${accentRGB[2]},${accentLoadAlpha})`
+  const sweepDurationMs = props.sweepDurationMs ?? 9000
+  const pulseDurationMs = props.pulseDurationMs ?? 3200
   const [inView, setInView] = useState(true)
   useEffect(() => {
     const el = containerRef.current
@@ -210,25 +214,46 @@ export function SupportedChains(props: SupportedChainsProps = {}) {
 
         <div
           ref={containerRef}
-          className="chains-scroll relative w-full overflow-x-hidden scroll-smooth"
+          className="chains-scroll relative w-full overflow-x-hidden scroll-smooth rounded-2xl px-4 py-4 shadow-[0_0_28px_rgba(0,242,139,0.16)] border border-white/10 bg-transparent"
         >
+          <motion.div
+            className="pointer-events-none absolute inset-y-0 left-0 h-full rounded-2xl mix-blend-soft-light z-0"
+            style={{ width: "38%", backgroundImage: `radial-gradient(closest-side, rgba(255,255,255,0.12), rgba(255,255,255,0.06), transparent 65%)` }}
+            initial={{ x: "-120%" }}
+            animate={{ x: "120%" }}
+            transition={{ duration: sweepDurationMs / 1000, repeat: Infinity, ease: "linear" }}
+          />
+          <motion.div
+            className="pointer-events-none absolute inset-y-0 left-0 h-full rounded-2xl z-0"
+            style={{ width: "30%", backgroundImage: `linear-gradient(90deg, transparent 24%, rgba(0,0,0,0.22) 48%, transparent 76%)` }}
+            initial={{ x: "-120%" }}
+            animate={{ x: "120%" }}
+            transition={{ duration: sweepDurationMs / 1000, repeat: Infinity, ease: "easeInOut" }}
+          />
 
-          <div ref={trackRef} className="flex w-max gap-8 sm:gap-12">
+          <div ref={trackRef} className="relative z-10 flex w-max gap-8 sm:gap-12">
             {[...chains, ...chains, ...chains].map((c, idx) => (
               <div
                 key={`${c.name}-${idx}`}
-                className={`flex flex-col items-center gap-2 flex-shrink-0 grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-300 ${activeUntil.current.get(idx) && activeUntil.current.get(idx)! > Date.now() ? "!grayscale-0 !opacity-100 drop-shadow-[0_0_12px_rgba(0,242,139,0.25)]" : ""}`}
+                className={`flex flex-col items-center gap-2 flex-shrink-0 grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-300 ${activeUntil.current.get(idx) && activeUntil.current.get(idx)! > Date.now() ? "!grayscale-0 !opacity-100" : ""}`}
               >
                 <div
-                  className={`relative flex h-10 w-10 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-transparent ${c.highlight ? "shadow-[0_0_10px_rgba(0,242,139,0.18)]" : ""}`}
+                  className={`relative flex h-10 w-10 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-black/20 ${c.highlight ? "ring-1 ring-[rgba(0,242,139,0.25)]" : ""}`}
                   aria-hidden="true"
-                  style={chainFillActive === idx ? { boxShadow: "0 0 0 2px rgba(0,242,139,0.35), 0 0 12px rgba(0,242,139,0.25)" } : undefined}
+                  style={chainFillActive === idx ? { outline: "2px solid rgba(0,242,139,0.35)", outlineOffset: "-2px" } : undefined}
                 >
+                  <motion.div
+                    className="absolute inset-0 rounded-full"
+                    style={{ boxShadow: "none" }}
+                    animate={{ opacity: [0.08, 0.12, 0.08] }}
+                    transition={{ duration: pulseDurationMs / 1000, repeat: Infinity, ease: "easeInOut" }}
+                  />
                   <div className="h-6 w-6 sm:h-8 sm:w-8">{c.svg}</div>
-                </div>
+                </div
+                >
                 <span className="text-[12px] sm:text-[13px] font-[600] whitespace-nowrap" style={{
                   color: activeUntil.current.get(idx) && activeUntil.current.get(idx)! > Date.now() ? "#ffffff" : "var(--muted-foreground)",
-                  textShadow: activeUntil.current.get(idx) && activeUntil.current.get(idx)! > Date.now() ? "0 0 8px rgba(0,242,139,0.25)" : "none"
+                  textShadow: "none"
                 }}>{c.name}</span>
               </div>
             ))}

@@ -50,8 +50,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.className} ${geistMono.className}`}>
-        <AnimatedBackground />
+      <body className={`${geistSans.className} ${geistMono.className} bg-metal site-bg-fixed`}>
+        {/* AnimatedBackground removed from layout to prevent unexpected changes; use static CSS background */}
         {children}
       </body>
     </html>

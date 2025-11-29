@@ -5,7 +5,7 @@
 
 :root {
   /* ScamSniffer-inspired color palette */
-  --background: #0f172a;
+  --background: #0b1226;
   --foreground: #f1f5f9;
   --card: #1e293b;
   --card-foreground: #f1f5f9;
@@ -35,9 +35,9 @@
   --surface: #1e293b;
   --surface-light: #334155;
 
-  --radius: 0.625rem;
+  --radius: 0.75rem;
 
-  --background: #0f172a;
+  --background: #0b1226;
   --foreground: #f1f5f9;
   --card: #1e293b;
   --card-foreground: #f1f5f9;
@@ -61,7 +61,7 @@
   --chart-3: #14b8a6;
   --chart-4: #f59e0b;
   --chart-5: #ef4444;
-  --radius: 0.625rem;
+  --radius: 0.75rem;
   --sidebar: #1e293b;
   --sidebar-foreground: #f1f5f9;
   --sidebar-primary: #06b6d4;
@@ -152,25 +152,25 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground antialiased transition-colors duration-300;
   }
 }
 
 @layer components {
   .card {
-    @apply bg-[--card] border border-[--border] rounded-lg p-6;
+    @apply bg-[--card] border border-[--border] rounded-lg p-6 transition-colors;
   }
 
   .btn-primary {
-    @apply px-6 py-3 bg-[--primary] text-[--background] font-semibold rounded-lg hover:bg-[--primary-dark] transition-all;
+    @apply px-6 py-3 bg-[--primary] text-[--background] font-semibold rounded-xl hover:bg-[--primary-dark] transition-colors;
   }
 
   .btn-secondary {
-    @apply px-6 py-3 bg-transparent border border-[--border] text-[--foreground] font-semibold rounded-lg hover:bg-[--surface-light] transition-colors;
+    @apply px-6 py-3 bg-transparent border border-[--border] text-[--foreground] font-semibold rounded-xl hover:bg-[--surface-light] transition-colors;
   }
 
   .input-field {
-    @apply w-full bg-[--input] border border-[--border] text-[--foreground] px-4 py-3 rounded-lg focus:outline-none focus:border-[--primary] transition-colors placeholder:text-[--muted];
+    @apply w-full bg-[--input] border border-[--border] text-[--foreground] px-4 py-3 rounded-xl focus:outline-none focus:border-[--primary] transition-colors placeholder:text-[--muted];
   }
 
   .badge-safe {
@@ -186,10 +186,84 @@
   }
 
   .scanner-input {
-    @apply w-full bg-[--surface-light] border border-[--border] text-[--foreground] px-6 py-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-[--primary]/50 transition-all placeholder:text-[--muted];
+    @apply w-full bg-[--surface-light] border border-[--border] text-[--foreground] px-6 py-4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[--primary]/50 transition-all placeholder:text-[--muted];
   }
 
   .risk-card {
-    @apply bg-[--surface] border border-[--border] rounded-xl p-6 hover:border-[--primary] transition-colors;
+    @apply bg-[--surface] border border-[--border] rounded-2xl p-6 hover:border-[--primary] transition-colors;
   }
 }
+  /* Brand palette scale */
+  --brand-50: #e6fffb;
+  --brand-100: #c6fff7;
+  --brand-200: #9af6ea;
+  --brand-300: #6debdc;
+  --brand-400: #3fd7c9;
+  --brand-500: #14b8a6; /* base accent */
+  --brand-600: #0ea5a0;
+  --brand-700: #0d9488;
+  --brand-800: #0f766e;
+  --brand-900: #115e59;
+
+  /* Neutral scale */
+  --neutral-0: #0A0A0A;
+  --neutral-50: #0F0F0F;
+  --neutral-100: #181B1A;
+  --neutral-200: #202124;
+  --neutral-300: #262132;
+  --neutral-400: #404146;
+  --neutral-500: #737478;
+  --neutral-600: #9C9CAD;
+  --neutral-700: #878B8A;
+  --neutral-800: #D4D5D7;
+  --neutral-900: #EDEDEE;
+  --neutral-950: #FAFAFA;
+
+  /* Error scale */
+  --error-50: #fef2f2;
+  --error-100: #fee2e2;
+  --error-200: #fecaca;
+  --error-300: #fca5a5;
+  --error-400: #f87171;
+  --error-500: #ef4444; /* base */
+  --error-600: #dc2626;
+  --error-700: #b91c1c;
+  --error-800: #991b1b;
+  --error-900: #7f1d1d;
+
+  /* Warning scale */
+  --warning-50: #fffbeb;
+  --warning-100: #fef3c7;
+  --warning-200: #fde68a;
+  --warning-300: #fcd34d;
+  --warning-400: #fbbf24;
+  --warning-500: #f59e0b; /* base */
+  --warning-600: #d97706;
+  --warning-700: #b45309;
+  --warning-800: #92400e;
+  --warning-900: #78350f;
+
+  /* Success scale */
+  --success-50: #f0fdf4;
+  --success-100: #dcfce7;
+  --success-200: #bbf7d0;
+  --success-300: #86efac;
+  --success-400: #4ade80;
+  --success-500: #22c55e; /* base */
+  --success-600: #16a34a;
+  --success-700: #15803d;
+  --success-800: #166534;
+  --success-900: #14532d;
+
+  /* Derived tokens */
+  --color-text-secondary: var(--muted);
+  --color-surface: var(--surface);
+  /* Gradient combinations */
+  --brand-start: var(--brand-500);
+  --brand-end: #06b6d4;
+  --success-start: var(--success-600);
+  --success-end: var(--success-400);
+  --warning-start: var(--warning-500);
+  --warning-end: var(--warning-400);
+  --error-start: var(--error-600);
+  --error-end: var(--error-400);

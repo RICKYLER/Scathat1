@@ -13,6 +13,10 @@ type LogoFramedProps = {
   logoGradientStart?: string
   logoGradientEnd?: string
   decorative?: boolean
+  frame?: boolean
+  iconOnly?: boolean
+  ringHex?: string
+  ringPx?: number
 }
 
 export function LogoFramed({
@@ -20,12 +24,16 @@ export function LogoFramed({
   heightPx = 3000,
   borderInch = 2,
   dpi = 300,
-  backgroundHex = "#0f172a",
+  backgroundHex = "transparent",
   frameGradientStart = "#10b981",
   frameGradientEnd = "#06b6d4",
-  logoGradientStart = "#2dd4bf",
-  logoGradientEnd = "#22d3ee",
+  logoGradientStart = "#0b1226",
+  logoGradientEnd = "#0f172a",
   decorative = true,
+  frame = true,
+  iconOnly = true,
+  ringHex = "#ff5bd3",
+  ringPx = Math.max(2, Math.round(Math.min(widthPx, heightPx) * 0.02)),
 }: LogoFramedProps) {
   const borderPx = Math.max(1, Math.round(borderInch * dpi))
   const vbW = widthPx
@@ -37,6 +45,37 @@ export function LogoFramed({
   const logoCircleCx = vbW / 2
   const logoCircleCy = vbH / 2 - Math.min(vbH, vbW) * 0.06
   const wordmarkY = logoCircleCy + logoCircleR + Math.min(vbH, vbW) * 0.08
+  const R = logoCircleR
+  const shieldPoints = [
+    [0, -0.5 * R],
+    [-0.42 * R, -0.2 * R],
+    [-0.22 * R, 0.45 * R],
+    [0, 0.65 * R],
+    [0.22 * R, 0.45 * R],
+    [0.42 * R, -0.2 * R],
+  ]
+  const shieldPointsStr = shieldPoints.map(([x, y]) => `${x},${y}`).join(" ")
+  const brimRx = 0.65 * R
+  const brimRy = 0.1 * R
+  const brimCx = 0
+  const brimCy = -0.58 * R
+  const bandW = 0.6 * R
+  const bandH = 0.08 * R
+  const bandX = -bandW / 2
+  const bandY = -0.78 * R
+  const crownPoints = [
+    [-0.28 * R, -0.98 * R],
+    [0.28 * R, -0.98 * R],
+    [0.44 * R, -0.72 * R],
+    [-0.44 * R, -0.72 * R],
+  ]
+  const crownPointsStr = crownPoints.map(([x, y]) => `${x},${y}`).join(" ")
+  const eyeRx = 0.26 * R
+  const eyeRy = 0.14 * R
+  const eyeCx = 0
+  const eyeCy = 0.06 * R
+  const irisR = 0.12 * R
+  const pupilR = 0.06 * R
 
   return (
     <svg
@@ -65,17 +104,19 @@ export function LogoFramed({
 
       <rect x={0} y={0} width={vbW} height={vbH} fill={backgroundHex} />
 
-      <rect
-        x={borderPx / 2}
-        y={borderPx / 2}
-        width={vbW - borderPx}
-        height={vbH - borderPx}
-        rx={frameRadius}
-        ry={frameRadius}
-        fill="none"
-        stroke="url(#frame-g)"
-        strokeWidth={borderPx}
-      />
+      {frame && (
+        <rect
+          x={borderPx / 2}
+          y={borderPx / 2}
+          width={vbW - borderPx}
+          height={vbH - borderPx}
+          rx={frameRadius}
+          ry={frameRadius}
+          fill="none"
+          stroke="url(#frame-g)"
+          strokeWidth={borderPx}
+        />
+      )}
 
       {decorative && (
         <g filter="url(#softGlow)">
@@ -85,29 +126,35 @@ export function LogoFramed({
       )}
 
       <circle cx={logoCircleCx} cy={logoCircleCy} r={logoCircleR} fill="url(#logo-g)" />
+      <circle cx={logoCircleCx} cy={logoCircleCy} r={logoCircleR} fill="none" stroke={ringHex} strokeWidth={ringPx} />
 
-      <text
-        x={logoCircleCx}
-        y={logoCircleCy + Math.round(logoCircleR * 0.28)}
-        textAnchor="middle"
-        fontSize={Math.round(logoCircleR * 0.9)}
-        fontWeight={800}
-        fill="#0f172a"
-      >
-        S
-      </text>
+      <g transform={`translate(${logoCircleCx},${logoCircleCy})`}>
+        <polygon points={shieldPointsStr} fill="#0b1020" />
 
-      <text
-        x={vbW / 2}
-        y={wordmarkY}
-        textAnchor="middle"
-        fontSize={Math.round(Math.min(vbW, vbH) * 0.12)}
-        fontWeight={800}
-        fill="url(#frame-g)"
-      >
-        Scathat
-      </text>
+        <ellipse cx={eyeCx} cy={eyeCy} rx={eyeRx} ry={eyeRy} fill="#ffffff" />
+        <circle cx={eyeCx} cy={eyeCy} r={irisR} fill="#e11d48" />
+        <circle cx={eyeCx} cy={eyeCy} r={pupilR} fill="#0f172a" />
+        <circle cx={eyeCx + pupilR * 0.4} cy={eyeCy - pupilR * 0.4} r={pupilR * 0.25} fill="#ffffff" opacity={0.85} />
+
+        <g transform={`rotate(-8)`}>
+          <ellipse cx={brimCx} cy={brimCy} rx={brimRx} ry={brimRy} fill="#0f172a" opacity={0.95} />
+          <polygon points={crownPointsStr} fill="#0f172a" />
+          <rect x={bandX} y={bandY} width={bandW} height={bandH} fill="#ffffff" />
+        </g>
+      </g>
+
+      {iconOnly ? null : (
+        <text
+          x={vbW / 2}
+          y={wordmarkY}
+          textAnchor="middle"
+          fontSize={Math.round(Math.min(vbW, vbH) * 0.12)}
+          fontWeight={800}
+          fill="url(#frame-g)"
+        >
+          Scathat
+        </text>
+      )}
     </svg>
   )
 }
-

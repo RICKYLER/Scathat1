@@ -17,7 +17,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { LogoFramed } from "@/components/brand/LogoFramed"
+import Image from "next/image"
 
 export function Header() {
   // Track mobile menu open/closed state
@@ -27,9 +27,13 @@ export function Header() {
     <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border/40">
       <nav className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
         {/* Brand/Logo - links to home */}
-        <Link href="/" className="group flex items-center gap-3">
+        <Link href="/" className="group flex items-center gap-4">
           <span className="hidden sm:block -ml-2">
-            <LogoFramed widthPx={320} heightPx={320} borderInch={0.12} dpi={300} decorative backgroundHex="transparent" />
+            <Image src="/brand/logo-scathat.svg" alt="Scathat" width={48} height={48} className="h-12 w-12 rounded-full" onError={(e) => {
+              const img = e.currentTarget as HTMLImageElement
+              // Fallback to PNG if SVG fails to load
+              img.src = "/logo-scathat.png"
+            }} />
           </span>
           <span className="font-extrabold text-2xl md:text-3xl tracking-tight bg-gradient-to-r from-emerald-400 via-cyan-400 to-sky-400 bg-clip-text text-transparent drop-shadow-[0_0_24px_rgba(34,197,94,0.15)] group-hover:brightness-110">
             Scathat

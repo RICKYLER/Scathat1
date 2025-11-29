@@ -52,10 +52,8 @@ export function Footer() {
         </motion.div>
         <div className="grid gap-8 md:grid-cols-4">
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm">
-                S
-              </div>
+            <div className="flex items-center gap-3">
+              <img src="/brand/logo-scathat.svg" alt="Scathat" className="h-10 w-10 rounded" />
               <span className="font-bold text-foreground">Scathat</span>
             </div>
             <p className="text-sm text-muted-foreground">AI-powered smart contract security for everyone</p>

@@ -12,9 +12,14 @@ from typing import Dict, Any, Optional
 
 # Import services
 from services.explorer_service import ExplorerService, ExplorerConfig
-from services.venice_service import VeniceService, VeniceConfig
 from services.web3_service import Web3Service, Web3Config
-from services.agentkit_service import AgentKitService, AgentKitRiskLevel
+
+# Import AI services from scathat-ai-model
+import sys
+import os
+sys.path.append('/Users/rackerjoyjugalbot/Scathat/scathat-ai-model/services')
+from venice_service import VeniceService, VeniceConfig
+from agentkit_service import AgentKitService, AgentKitRiskLevel
 
 # Create FastAPI instance
 app = FastAPI(

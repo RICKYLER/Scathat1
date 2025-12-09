@@ -1,0 +1,11 @@
+export { default as Header } from "./Header";
+export { default as HeroSection } from "./HeroSection";
+export { default as ThreatsSection } from "./ThreatsSection";
+export { default as SolutionSection } from "./SolutionSection";
+export { default as HowItWorksSection } from "./HowItWorksSection";
+export { default as TargetMarketSection } from "./TargetMarketSection";
+export { default as PricingSection } from "./PricingSection";
+export { default as DifferentiatorsSection } from "./DifferentiatorsSection";
+export { default as VisionSection } from "./VisionSection";
+export { default as CTASection } from "./CTASection";
+export { default as Footer } from "./Footer";

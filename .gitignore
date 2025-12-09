@@ -1,0 +1,9 @@
+scathat-frontend/.next/
+scathat-frontend/node_modules/
+scathat-frontend/tsconfig.tsbuildinfo
+scathat-frontend/bun.lockb
+scathat-frontend/package-lock.json
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

@@ -7,6 +7,7 @@ const navLinks = [
   { label: "About", href: "#learn-more" },
   { label: "How It Works", href: "#how-it-works" },
   { label: "Pricing", href: "#pricing" },
+  { label: "Try Scan", href: "/try-scan" },
   { label: "Contact", href: "#contact-us" },
 ];
 

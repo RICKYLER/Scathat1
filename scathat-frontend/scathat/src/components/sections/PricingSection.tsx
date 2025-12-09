@@ -32,7 +32,7 @@ const PricingSection = () => {
             Scalable Security: Our Robust Revenue Model
           </h2>
           <p className="text-lg text-muted-foreground">
-            Scathat's revenue model is designed for sustainable growth, catering to the diverse needs of the Web3 community, 
+            Scathat&apos;s revenue model is designed for sustainable growth, catering to the diverse needs of the Web3 community, 
             from individual users to enterprise-level platforms.
           </p>
         </div>

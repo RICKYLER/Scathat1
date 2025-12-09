@@ -33,7 +33,7 @@ const ThreatsSection = () => {
             The Unseen Threat: Why Web3 Users Are Vulnerable
           </h2>
           <p className="text-lg text-muted-foreground">
-            The current state of Web3 security leaves users exposed to an array of threats that are often invisible until it's too late. 
+            The current state of Web3 security leaves users exposed to an array of threats that are often invisible until it&apos;s too late. 
             Millions are lost annually due to increasingly sophisticated scams and exploits, eroding trust and hindering mainstream adoption.
           </p>
         </div>

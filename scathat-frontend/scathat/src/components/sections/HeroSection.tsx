@@ -24,7 +24,7 @@ const HeroSection = () => {
             Web3 is revolutionizing finance and digital ownership, but this rapid growth comes with significant risks. 
             Users are losing millions to sophisticated hacks, insidious rugpulls, and dangerous malicious approvals. 
             The promise of decentralization is undermined when trust is repeatedly broken by bad actors. 
-            We believe it's time for a new paradigm in Web3 security.
+            We believe it&apos;s time for a new paradigm in Web3 security.
           </p>
 
           <div className="flex flex-wrap gap-4">

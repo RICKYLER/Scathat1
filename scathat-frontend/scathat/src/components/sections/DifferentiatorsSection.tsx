@@ -29,7 +29,7 @@ const DifferentiatorsSection = () => {
       <div className="container px-4 md:px-6">
         <div className="max-w-4xl mx-auto mb-16 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6 text-foreground">
-            Unrivaled Protection: Scathat's Key Differentiators
+            Unrivaled Protection: Scathat&apos;s Key Differentiators
           </h2>
           <p className="text-lg text-muted-foreground">
             Scathat stands apart from existing solutions by integrating predictive AI with on-chain enforcement, 
@@ -53,7 +53,7 @@ const DifferentiatorsSection = () => {
 
         <div className="max-w-3xl mx-auto text-center">
           <p className="text-lg text-muted-foreground">
-            With Scathat, you're not just getting a warning; you're getting an <span className="text-primary font-semibold">active protector</span> that 
+            With Scathat, you&apos;re not just getting a warning; you&apos;re getting an <span className="text-primary font-semibold">active protector</span> that 
             intervenes to keep your Web3 experience secure.
           </p>
         </div>

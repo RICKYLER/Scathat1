@@ -1,4 +1,4 @@
-import { Shield } from "lucide-react";
+import Image from "next/image";
 
 const Footer = () => {
   return (
@@ -6,7 +6,9 @@ const Footer = () => {
       <div className="container px-4 md:px-6">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
-            <Shield className="w-6 h-6 text-primary" />
+            <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-primary">
+              <Image src="/logo1.jpg" alt="Scathat logo" width={32} height={32} priority />
+            </div>
             <span className="text-lg font-semibold text-foreground">Scathat</span>
           </div>
           
@@ -26,7 +28,7 @@ const Footer = () => {
           </nav>
 
           <p className="text-sm text-muted-foreground">
-            © 2024 Scathat. All rights reserved.
+            © 2025 Scathat. All rights reserved.
           </p>
         </div>
       </div>

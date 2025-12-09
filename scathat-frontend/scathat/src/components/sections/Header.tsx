@@ -35,8 +35,8 @@ const Header = () => {
       <div className="container px-4 md:px-6">
         <div className="flex items-center justify-between h-16 md:h-20">
           <a href="/" className="flex items-center gap-2 group">
-            <div className="p-1.5 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-              <Image src={logoSrc} alt="Scathat logo" width={28} height={28} priority onError={() => setLogoSrc("/logo.svg")} />
+            <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-primary bg-background">
+              <Image src={logoSrc} alt="Scathat logo" width={36} height={36} priority onError={() => setLogoSrc("/logo.svg")} />
             </div>
             <span className="text-xl font-bold text-foreground">Scathat</span>
           </a>

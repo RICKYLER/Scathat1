@@ -226,9 +226,10 @@ class ScathatPopup {
                     const chainId = await window.ethereum.request({ method: 'eth_chainId' });
                     this.networkInfo = this.getNetworkInfo(parseInt(chainId));
                     
-                    // Set up provider and signer
-                    this.provider = new ethers.BrowserProvider(window.ethereum);
-                    this.signer = await this.provider.getSigner();
+                    // Set up provider and signer via helper
+                    const { getProvider, getSigner } = await import('../lib/eth.js');
+                    this.provider = getProvider();
+                    this.signer = await getSigner(this.provider);
                     
                     // Listen for account changes
                     window.ethereum.on('accountsChanged', (accounts) => {
@@ -258,8 +259,9 @@ class ScathatPopup {
                 this.walletAddress = response.address;
                 this.networkInfo = response.networkInfo;
                 
-                // Set up provider and signer using the content script as proxy
-                this.provider = new ethers.JsonRpcProvider('https://mainnet.base.org'); // Use a default provider
+                // Set up provider and signer using helper (fallback to default)
+                const { getProvider } = await import('../lib/eth.js');
+                this.provider = getProvider();
                 
                 this.updateWalletUI();
                 this.addActivity(`Wallet connected: ${this.formatAddress(this.walletAddress)}`, 'success');
@@ -367,9 +369,10 @@ class ScathatPopup {
         const newChainId = parseInt(chainId);
         this.networkInfo = this.getNetworkInfo(newChainId);
         
-        // Update provider and signer
-        this.provider = new ethers.BrowserProvider(window.ethereum);
-        this.signer = await this.provider.getSigner();
+        // Update provider and signer using helper
+        const { getProvider, getSigner } = await import('../lib/eth.js');
+        this.provider = getProvider();
+        this.signer = await getSigner(this.provider);
         
         this.updateWalletUI();
         this.addActivity(`Network changed: ${this.networkInfo.name}`, 'info');

@@ -9,15 +9,23 @@ export function getProvider() {
 
 export async function getSigner(provider) {
   const p = provider || getProvider()
+  // Ensure accounts are requested before getting signer in some wallets
+  try {
+    await requestAccounts(p)
+  } catch {}
   return await p.getSigner()
 }
 
 export async function requestAccounts(provider) {
   const p = provider || getProvider()
-  if (p.send) {
-    return await p.send("eth_requestAccounts", [])
+  const anyP = p
+  if (typeof window !== "undefined" && window.ethereum && window.ethereum.request) {
+    return await window.ethereum.request({ method: "eth_requestAccounts" })
   }
-  return []
+  if (anyP.send) {
+    return await anyP.send("eth_requestAccounts", [])
+  }
+  throw new Error("No wallet provider available")
 }
 
 export async function getNetwork(provider) {

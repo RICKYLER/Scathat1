@@ -232,9 +232,12 @@ class ScathatPopup {
                     this.signer = await getSigner(this.provider);
                     
                     // Listen for account changes
-                    window.ethereum.on('accountsChanged', (accounts) => {
-                        this.handleAccountsChanged(accounts);
-                    });
+                    window.ethereum.removeListener?.('accountsChanged', this.handleAccountsChangedBound)
+                    window.ethereum.removeListener?.('chainChanged', this.handleChainChangedBound)
+                    this.handleAccountsChangedBound = (accounts) => this.handleAccountsChanged(accounts)
+                    this.handleChainChangedBound = (chainId) => this.handleChainChanged(chainId)
+                    window.ethereum.on('accountsChanged', this.handleAccountsChangedBound)
+                    window.ethereum.on('chainChanged', this.handleChainChangedBound)
                     
                     // Listen for chain changes
                     window.ethereum.on('chainChanged', (chainId) => {
@@ -249,8 +252,13 @@ class ScathatPopup {
 
     async connectWallet() {
         try {
-            // Use content script to access window.ethereum in webpage context
-            const response = await chrome.runtime.sendMessage({
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (!tab || !tab.id) {
+                this.showError('No active tab found. Open a dApp page and try again.');
+                return;
+            }
+
+            const response = await chrome.tabs.sendMessage(tab.id, {
                 type: 'CONNECT_WALLET'
             });
 
@@ -293,8 +301,8 @@ class ScathatPopup {
             
             // Remove event listeners
             if (window.ethereum && window.ethereum.removeListener) {
-                window.ethereum.removeListener('accountsChanged', this.handleAccountsChanged);
-                window.ethereum.removeListener('chainChanged', this.handleChainChanged);
+                if (this.handleAccountsChangedBound) window.ethereum.removeListener('accountsChanged', this.handleAccountsChangedBound);
+                if (this.handleChainChangedBound) window.ethereum.removeListener('chainChanged', this.handleChainChangedBound);
             }
 
             this.updateWalletUI();

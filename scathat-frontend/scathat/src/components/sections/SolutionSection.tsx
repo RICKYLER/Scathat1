@@ -30,7 +30,7 @@ const SolutionSection = () => {
             </div>
           </div>
           <h2 className="text-3xl md:text-4xl font-bold mb-6 text-foreground">
-            Scathat: Your Shield in the Web3 Universe
+            Scathat: Your Shield in the Web3 Space
           </h2>
           <p className="text-lg text-muted-foreground">
             Introducing Scathat, a revolutionary Web3 security solution designed to protect users proactively. 

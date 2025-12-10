@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Scathat — Web3 Security Shield',
+  title: 'Scathat',
   description:
     'AI-powered real-time smart contract analysis and on-chain enforcement to protect users from hacks, rugpulls, and malicious approvals.',
   icons: {
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     apple: '/logo1.jpg',
   },
   openGraph: {
-    title: 'Scathat — Web3 Security Shield',
+    title: 'Scathat',
     description:
       'AI-powered real-time smart contract analysis and on-chain enforcement to protect users from hacks, rugpulls, and malicious approvals.',
     images: ['/logo1.jpg'],
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Scathat — Web3 Security Shield',
+    title: 'Scathat',
     description:
       'AI-powered real-time smart contract analysis and on-chain enforcement to protect users from hacks, rugpulls, and malicious approvals.',
     images: ['/logo1.jpg'],

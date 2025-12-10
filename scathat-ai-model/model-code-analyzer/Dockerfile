@@ -16,12 +16,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
+# Create log directory and set permissions before user switch
+RUN mkdir -p /app/logs
+
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash app
+RUN chown -R app:app /app
 USER app
-
-# Create log directory
-RUN mkdir -p /app/logs
 
 # Expose port
 EXPOSE 8002

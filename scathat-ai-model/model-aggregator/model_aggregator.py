@@ -2,10 +2,17 @@
 """
 Model Aggregator - Simple Weighted Scoring System
 Combines outputs from Code Analyzer, Bytecode Detector, and Behavior Model
+
+Enhanced with real API integration for bytecode analysis
 """
 
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 @dataclass
 class ModelWeights:
@@ -19,6 +26,17 @@ class ResultAggregator:
     
     def __init__(self, weights: ModelWeights = None):
         self.weights = weights or ModelWeights()
+        
+        # Import bytecode client (optional dependency)
+        self.bytecode_client = None
+        try:
+            from bytecode_client import BytecodeDetectorClient
+            self.bytecode_client = BytecodeDetectorClient()
+            logger.info("Bytecode client initialized successfully")
+        except ImportError:
+            logger.warning("Bytecode client not available - using mock data")
+        except Exception as e:
+            logger.warning(f"Failed to initialize bytecode client: {e}")
         
     def aggregate(self, model_outputs: Dict[str, Dict]) -> Dict[str, Any]:
         """
@@ -91,6 +109,109 @@ class ResultAggregator:
             },
             "recommendations": self._generate_recommendations(risk_level)
         }
+    
+    def analyze_bytecode_real(self, bytecode: str, contract_address: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Perform real bytecode analysis using the deployed API
+        
+        Args:
+            bytecode: EVM bytecode string
+            contract_address: Optional contract address for context
+            
+        Returns:
+            Analysis results in aggregator format
+        """
+        
+        if not self.bytecode_client:
+            logger.warning("Bytecode client not available - using mock data")
+            return self._create_mock_bytecode_analysis()
+        
+        try:
+            # Perform real analysis
+            result = self.bytecode_client.analyze_bytecode(bytecode, contract_address)
+            
+            if result.get('fallback'):
+                logger.warning("Using fallback bytecode analysis (service may be down)")
+            else:
+                logger.info(f"Bytecode analysis completed: score={result['risk_score']:.3f}")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Bytecode analysis failed: {e}")
+            return self._create_mock_bytecode_analysis()
+    
+    def aggregate_with_real_bytecode(self, bytecode: str, contract_address: Optional[str] = None, 
+                                   code_analysis: Optional[Dict] = None, 
+                                   behavior_analysis: Optional[Dict] = None) -> Dict[str, Any]:
+        """
+        Enhanced aggregation with real bytecode analysis
+        
+        Args:
+            bytecode: EVM bytecode to analyze
+            contract_address: Optional contract address
+            code_analysis: Optional code analysis results
+            behavior_analysis: Optional behavior analysis results
+            
+        Returns:
+            Comprehensive aggregated result
+        """
+        
+        # Perform real bytecode analysis
+        bytecode_result = self.analyze_bytecode_real(bytecode, contract_address)
+        
+        # Prepare model outputs
+        model_outputs = {
+            "bytecode_analysis": {
+                "risk_score": bytecode_result.get("risk_score", 0.0),
+                "confidence": bytecode_result.get("confidence", 0.5),
+                "detected_patterns": bytecode_result.get("detected_patterns", []),
+                "processing_time_ms": bytecode_result.get("processing_time_ms", 0)
+            }
+        }
+        
+        # Add optional code analysis
+        if code_analysis:
+            model_outputs["code_analysis"] = code_analysis
+        else:
+            model_outputs["code_analysis"] = {
+                "risk_score": 0.0,
+                "confidence": 0.1,  # Low confidence for missing data
+                "vulnerabilities": []
+            }
+        
+        # Add optional behavior analysis
+        if behavior_analysis:
+            model_outputs["behavior_analysis"] = behavior_analysis
+        else:
+            model_outputs["behavior_analysis"] = {
+                "behavior_score": 0.0,
+                "anomaly_score": 0.1,  # Low confidence for missing data
+                "detected_patterns": []
+            }
+        
+        # Perform aggregation
+        return self.aggregate(model_outputs)
+    
+    def _create_mock_bytecode_analysis(self) -> Dict[str, Any]:
+        """Create mock bytecode analysis for fallback"""
+        return {
+            "risk_score": 0.5,  # Neutral score
+            "confidence": 0.1,  # Low confidence
+            "detected_patterns": [],
+            "processing_time_ms": 0,
+            "fallback": True
+        }
+    
+    def is_bytecode_service_available(self) -> bool:
+        """Check if bytecode analysis service is available"""
+        if not self.bytecode_client:
+            return False
+        
+        try:
+            return self.bytecode_client.health_check()
+        except Exception:
+            return False
     
     def _calculate_effective_weights(self, code_conf: float, bytecode_conf: float, behavior_conf: float) -> ModelWeights:
         """Calculate effective weights based on model confidence"""

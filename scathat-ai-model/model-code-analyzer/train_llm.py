@@ -92,7 +92,7 @@ def fine_tune_llm(model_name, train_data, output_dir):
 
 if __name__ == "__main__":
     # Configuration
-    instruction_file = "../datasets/processed/instruction_data.jsonl"
+    instruction_file = "../datasets/processed/instruction_data_enhanced.jsonl"
     model_name = "microsoft/DialoGPT-medium"  # Good for dialogue/instruction tasks
     output_dir = "./fine_tuned_model"
     

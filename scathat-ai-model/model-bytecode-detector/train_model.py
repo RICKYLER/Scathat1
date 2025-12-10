@@ -13,7 +13,7 @@ import os
 import time
 
 # Import our modules
-from bytecode_tokenizer import preprocess_bytecode, extract_opcode_sequence
+from bytecode_tokenizer import preprocess_bytecode, tokenize_bytecode
 from model_architecture import BytecodeTransformer, BytecodeDataset, train_model
 from sample_datasets import load_training_data, analyze_bytecode_patterns
 
@@ -96,7 +96,7 @@ def predict_bytecode_risk(model, vocab, bytecode_str):
     
     # Preprocess and tokenize bytecode
     processed_bytecode = preprocess_bytecode(bytecode_str)
-    opcode_sequence = extract_opcode_sequence(processed_bytecode)
+    opcode_sequence = tokenize_bytecode(processed_bytecode)
     
     print(f"Opcode sequence: {opcode_sequence}")
     

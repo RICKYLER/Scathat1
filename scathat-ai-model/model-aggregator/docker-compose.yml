@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  model-aggregator:
+    build: .
+    container_name: model-aggregator
+    ports:
+      - "8001:8001"
+    environment:
+      - BYTECODE_API_URL=http://bytecode-detector:8000
+      - LOG_LEVEL=INFO
+      - PYTHONPATH=/home/app
+    volumes:
+      - ./logs:/home/app/logs
+    networks:
+      - scathat-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Bytecode detector service (reference only - should be deployed separately)
+  bytecode-detector:
+    image: scathat-bytecode-detector:latest
+    container_name: bytecode-detector
+    ports:
+      - "8000:8000"
+    networks:
+      - scathat-network
+    restart: unless-stopped
+
+networks:
+  scathat-network:
+    driver: bridge
+    name: scathat-network

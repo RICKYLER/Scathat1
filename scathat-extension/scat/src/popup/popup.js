@@ -10,12 +10,7 @@ class ScathatPopup {
             savedFunds: 0
         };
         
-        // Wallet connection state
-        this.walletConnected = false;
-        this.walletAddress = null;
-        this.networkInfo = null;
-        this.provider = null;
-        this.signer = null;
+        // Wallet functionality removed
         
         this.init();
     }
@@ -23,10 +18,9 @@ class ScathatPopup {
     async init() {
         await this.loadSettings();
         await this.checkConnectionStatus();
-        await this.checkWalletConnection();
+        // Wallet functionality removed
         this.setupEventListeners();
         this.updateUI();
-        await this.populateWalletSelector();
         
         console.log('Scathat popup initialized');
     }
@@ -47,27 +41,6 @@ class ScathatPopup {
             this.updateSettingsUI();
         } catch (error) {
             console.error('Error loading settings:', error);
-        }
-    }
-
-    async populateWalletSelector() {
-        try {
-            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-            if (!tab) return;
-            const response = await chrome.tabs.sendMessage(tab.id, { type: 'GET_WALLETS' });
-            const selector = document.getElementById('walletSelector');
-            if (!selector) return;
-            selector.innerHTML = '<option value="">Select Wallet</option>';
-            if (response && response.success && Array.isArray(response.wallets)) {
-                response.wallets.forEach(name => {
-                    const opt = document.createElement('option');
-                    opt.value = name;
-                    opt.textContent = name;
-                    selector.appendChild(opt);
-                });
-            }
-        } catch (e) {
-            console.warn('Wallet discovery failed:', e.message);
         }
     }
 
@@ -130,18 +103,7 @@ class ScathatPopup {
             this.openFeedback();
         });
 
-        // Wallet connection buttons
-        document.getElementById('connectWalletBtn').addEventListener('click', () => {
-            this.connectWallet();
-        });
-
-        document.getElementById('disconnectWalletBtn').addEventListener('click', () => {
-            this.disconnectWallet();
-        });
-
-        document.getElementById('switchNetworkBtn').addEventListener('click', () => {
-            this.switchToBaseNetwork();
-        });
+        // Wallet functionality removed
 
         // Listen for messages from background script
         chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -151,7 +113,7 @@ class ScathatPopup {
 
     updateUI() {
         this.updateConnectionUI();
-        this.updateWalletUI();
+        // Wallet UI removed
         this.updateStatsUI();
         this.updateSettingsUI();
     }
@@ -194,238 +156,22 @@ class ScathatPopup {
         document.getElementById('highlightToggle').checked = this.settings.highlightContracts;
     }
 
-    updateWalletUI() {
-        const walletDot = document.getElementById('walletDot');
-        const walletText = document.getElementById('walletText');
-        const walletInfo = document.getElementById('walletInfo');
-        const walletAddress = document.getElementById('walletAddress');
-        const networkInfo = document.getElementById('networkInfo');
-        const connectWalletBtn = document.getElementById('connectWalletBtn');
-        const disconnectWalletBtn = document.getElementById('disconnectWalletBtn');
-        const switchNetworkBtn = document.getElementById('switchNetworkBtn');
+    // Wallet UI removed
 
-        if (this.walletConnected && this.walletAddress) {
-            walletDot.classList.add('connected');
-            walletDot.classList.remove('wrong-network');
-            walletText.textContent = 'Connected';
-            walletInfo.style.display = 'flex';
-            walletAddress.textContent = this.walletAddress;
-            networkInfo.textContent = this.networkInfo ? `Network: ${this.networkInfo.name} (${this.networkInfo.chainId})` : 'Network: Unknown';
-            connectWalletBtn.style.display = 'none';
-            disconnectWalletBtn.style.display = 'block';
-            
-            // Show switch network button if not on Base
-            if (this.networkInfo && this.networkInfo.chainId !== 8453) {
-                switchNetworkBtn.style.display = 'block';
-                walletDot.classList.remove('connected');
-                walletDot.classList.add('wrong-network');
-                walletText.textContent = 'Wrong Network';
-            } else {
-                switchNetworkBtn.style.display = 'none';
-            }
-        } else {
-            walletDot.classList.remove('connected', 'wrong-network');
-            walletText.textContent = 'Not connected';
-            walletInfo.style.display = 'none';
-            connectWalletBtn.style.display = 'block';
-            disconnectWalletBtn.style.display = 'none';
-            switchNetworkBtn.style.display = 'none';
-        }
-    }
+    // Wallet functionality removed
 
-    async checkWalletConnection() {
-        try {
-            // Check if window.ethereum is available
-            if (typeof window.ethereum !== 'undefined') {
-                // Try to get accounts
-                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                
-                if (accounts.length > 0) {
-                    this.walletConnected = true;
-                    this.walletAddress = accounts[0];
-                    
-                    // Get network information
-                    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-                    this.networkInfo = this.getNetworkInfo(parseInt(chainId));
-                    
-                    // Set up provider and signer via helper
-                    const { getProvider, getSigner } = await import('../lib/eth.js');
-                    this.provider = getProvider();
-                    this.signer = await getSigner(this.provider);
-                    
-                    // Listen for account changes
-                    window.ethereum.removeListener?.('accountsChanged', this.handleAccountsChangedBound)
-                    window.ethereum.removeListener?.('chainChanged', this.handleChainChangedBound)
-                    this.handleAccountsChangedBound = (accounts) => this.handleAccountsChanged(accounts)
-                    this.handleChainChangedBound = (chainId) => this.handleChainChanged(chainId)
-                    window.ethereum.on('accountsChanged', this.handleAccountsChangedBound)
-                    window.ethereum.on('chainChanged', this.handleChainChangedBound)
-                    
-                    // Listen for chain changes
-                    window.ethereum.on('chainChanged', (chainId) => {
-                        this.handleChainChanged(chainId);
-                    });
-                }
-            }
-        } catch (error) {
-            console.error('Error checking wallet connection:', error);
-        }
-    }
+    // Wallet functionality removed
 
-    async connectWallet() {
-        try {
-            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-            if (!tab || !tab.id) {
-                this.showError('No active tab found. Open a dApp page and try again.');
-                return;
-            }
+    // Wallet functionality removed
 
-            const selector = document.getElementById('walletSelector');
-            const chosen = selector?.value || '';
-            const response = await chrome.tabs.sendMessage(tab.id, chosen
-                ? { type: 'CONNECT_WALLET_WITH', walletName: chosen }
-                : { type: 'CONNECT_WALLET' }
-            );
+    // Wallet functionality removed
 
-            if (response && response.success) {
-                this.walletConnected = true;
-                this.walletAddress = response.address;
-                this.networkInfo = response.networkInfo;
-                
-                // Set up provider and signer using helper (fallback to default)
-                const { getProvider } = await import('../lib/eth.js');
-                this.provider = getProvider();
-                
-                this.updateWalletUI();
-                this.addActivity(`Wallet connected: ${this.formatAddress(this.walletAddress)}`, 'success');
-                
-                // Save wallet connection info
-                await chrome.storage.local.set({
-                    walletConnection: {
-                        address: this.walletAddress,
-                        network: this.networkInfo,
-                        connectedAt: Date.now()
-                    }
-                });
-            } else {
-                this.showError(response?.error || 'Failed to connect wallet');
-            }
-        } catch (error) {
-            console.error('Error connecting wallet:', error);
-            this.showError('Failed to connect wallet: ' + error.message);
-        }
-    }
+    // Wallet functionality removed
 
-    async disconnectWallet() {
-        try {
-            this.walletConnected = false;
-            this.walletAddress = null;
-            this.networkInfo = null;
-            this.provider = null;
-            this.signer = null;
-            
-            // Remove event listeners
-            if (window.ethereum && window.ethereum.removeListener) {
-                if (this.handleAccountsChangedBound) window.ethereum.removeListener('accountsChanged', this.handleAccountsChangedBound);
-                if (this.handleChainChangedBound) window.ethereum.removeListener('chainChanged', this.handleChainChangedBound);
-            }
-
-            this.updateWalletUI();
-            this.addActivity('Wallet disconnected', 'info');
-            
-            // Remove wallet connection info
-            await chrome.storage.local.remove('walletConnection');
-        } catch (error) {
-            console.error('Error disconnecting wallet:', error);
-            this.showError('Failed to disconnect wallet: ' + error.message);
-        }
-    }
-
-    async switchToBaseNetwork() {
-        try {
-            if (typeof window.ethereum === 'undefined') {
-                this.showError('No Ethereum wallet found');
-                return;
-            }
-
-            // Base Mainnet chain ID: 8453
-            await window.ethereum.request({
-                method: 'wallet_switchEthereumChain',
-                params: [{ chainId: '0x2105' }] // 0x2105 = 8453 in hex
-            });
-
-            this.addActivity('Switched to Base network', 'success');
-        } catch (error) {
-            console.error('Error switching network:', error);
-            
-            if (error.code === 4902) {
-                // Chain not added, try to add it
-                try {
-                    await window.ethereum.request({
-                        method: 'wallet_addEthereumChain',
-                        params: [{
-                            chainId: '0x2105',
-                            chainName: 'Base Mainnet',
-                            nativeCurrency: {
-                                name: 'Ethereum',
-                                symbol: 'ETH',
-                                decimals: 18
-                            },
-                            rpcUrls: ['https://mainnet.base.org'],
-                            blockExplorerUrls: ['https://basescan.org']
-                        }]
-                    });
-                } catch (addError) {
-                    this.showError('Failed to add Base network: ' + addError.message);
-                }
-            } else {
-                this.showError('Failed to switch network: ' + error.message);
-            }
-        }
-    }
-
-    handleAccountsChanged(accounts) {
-        if (accounts.length === 0) {
-            // Wallet disconnected
-            this.walletConnected = false;
-            this.walletAddress = null;
-            this.addActivity('Wallet disconnected', 'info');
-        } else if (accounts[0] !== this.walletAddress) {
-            // Account changed
-            this.walletAddress = accounts[0];
-            this.addActivity(`Account changed: ${this.formatAddress(this.walletAddress)}`, 'info');
-        }
-        this.updateWalletUI();
-    }
-
-    async handleChainChanged(chainId) {
-        const newChainId = parseInt(chainId);
-        this.networkInfo = this.getNetworkInfo(newChainId);
-        
-        // Update provider and signer using helper
-        const { getProvider, getSigner } = await import('../lib/eth.js');
-        this.provider = getProvider();
-        this.signer = await getSigner(this.provider);
-        
-        this.updateWalletUI();
-        this.addActivity(`Network changed: ${this.networkInfo.name}`, 'info');
-    }
+    // Wallet functionality removed
 
     getNetworkInfo(chainId) {
-        const networks = {
-            1: { name: 'Ethereum Mainnet', chainId: 1 },
-            5: { name: 'Goerli Testnet', chainId: 5 },
-            11155111: { name: 'Sepolia Testnet', chainId: 11155111 },
-            8453: { name: 'Base Mainnet', chainId: 8453 },
-            84531: { name: 'Base Goerli Testnet', chainId: 84531 },
-            137: { name: 'Polygon Mainnet', chainId: 137 },
-            80001: { name: 'Polygon Mumbai Testnet', chainId: 80001 },
-            42161: { name: 'Arbitrum One', chainId: 42161 },
-            10: { name: 'Optimism', chainId: 10 },
-            56: { name: 'BNB Smart Chain', chainId: 56 }
-        };
-        
-        return networks[chainId] || { name: 'Unknown Network', chainId };
+        return { name: 'Network disabled', chainId };
     }
 
     formatAddress(address) {

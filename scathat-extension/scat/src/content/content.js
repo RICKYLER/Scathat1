@@ -56,61 +56,7 @@ class ScathatContent {
         break;
 
       case 'CONNECT_WALLET':
-        try {
-          if (typeof window.ethereum === 'undefined') {
-            sendResponse({ success: false, error: 'No Ethereum wallet found.' });
-            return true;
-          }
-
-          // Request account access
-          const accounts = await window.ethereum.request({ 
-            method: 'eth_requestAccounts' 
-          });
-
-          if (accounts.length > 0) {
-            // Get network information
-            const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-            const networkInfo = this.getNetworkInfo(parseInt(chainId));
-            
-            sendResponse({ 
-              success: true, 
-              address: accounts[0],
-              networkInfo: networkInfo
-            });
-          } else {
-            sendResponse({ success: false, error: 'No accounts found' });
-          }
-        } catch (error) {
-          console.error('Error connecting wallet:', error);
-          sendResponse({ success: false, error: error.message });
-        }
-        return true;
-
-      case 'GET_WALLETS':
-        try {
-          const wallets = this.getAvailableWallets();
-          sendResponse({ success: true, wallets });
-        } catch (error) {
-          sendResponse({ success: false, error: error.message });
-        }
-        return true;
-
-      case 'CONNECT_WALLET_WITH':
-        try {
-          const { walletName } = message;
-          const provider = this.selectProviderByName(walletName);
-          if (!provider) {
-            sendResponse({ success: false, error: 'Wallet not available' });
-            return true;
-          }
-          const accounts = await provider.request({ method: 'eth_requestAccounts' });
-          const chainId = await provider.request({ method: 'eth_chainId' });
-          const networkInfo = this.getNetworkInfo(parseInt(chainId));
-          sendResponse({ success: true, address: accounts[0], networkInfo });
-        } catch (error) {
-          console.error('Error connecting specific wallet:', error);
-          sendResponse({ success: false, error: error.message });
-        }
+        sendResponse({ success: false, error: 'Wallet connection disabled in this build.' });
         return true;
 
       case 'INTERCEPT_TRANSACTION':
@@ -127,46 +73,6 @@ class ScathatContent {
         sendResponse({ success: false, error: 'Unknown message type' });
     }
     return true;
-  }
-
-  getAvailableWallets() {
-    const names = new Set();
-    const providers = [];
-    if (typeof window.ethereum !== 'undefined') {
-      if (Array.isArray(window.ethereum.providers)) {
-        providers.push(...window.ethereum.providers);
-      } else {
-        providers.push(window.ethereum);
-      }
-    }
-    if (typeof window.okxwallet !== 'undefined') {
-      providers.push(window.okxwallet);
-    }
-    const wallets = providers.map(p => this.getProviderLabel(p)).filter(Boolean);
-    wallets.forEach(n => names.add(n));
-    if (names.size === 0 && typeof window.ethereum !== 'undefined') names.add('Injected Wallet');
-    return Array.from(names);
-  }
-
-  getProviderLabel(p) {
-    if (!p) return null;
-    if (p.isMetaMask) return 'MetaMask';
-    if (p.isBraveWallet) return 'Brave';
-    if (p.isCoinbaseWallet) return 'Coinbase';
-    if (p.isOkxWallet || p.isOKExWallet || p === window.okxwallet) return 'OKX';
-    return 'Injected Wallet';
-  }
-
-  selectProviderByName(name) {
-    if (typeof window.ethereum !== 'undefined') {
-      const list = Array.isArray(window.ethereum.providers) ? window.ethereum.providers : [window.ethereum];
-      const found = list.find(p => this.getProviderLabel(p) === name);
-      if (found) return found;
-    }
-    if (name === 'OKX' && typeof window.okxwallet !== 'undefined') {
-      return window.okxwallet;
-    }
-    return typeof window.ethereum !== 'undefined' ? window.ethereum : null;
   }
 
   scanPageForContracts() {
@@ -502,38 +408,13 @@ class ScathatContent {
 
   // Transaction Interception Methods
   injectTransactionInterceptor() {
-    // Check if window.ethereum exists (MetaMask or other wallet)
-    if (typeof window.ethereum !== 'undefined') {
-      this.interceptEthereumProvider();
-    } else {
-      // Wait for wallet injection
-      this.waitForWalletInjection();
-    }
+    // Wallet interception removed
+    return;
   }
 
   interceptEthereumProvider() {
-    const originalRequest = window.ethereum.request.bind(window.ethereum);
-    const originalSend = window.ethereum.send?.bind(window.ethereum);
-
-    // Intercept request method (modern wallets)
-    window.ethereum.request = async (args) => {
-      if (args.method === 'eth_sendTransaction') {
-        return this.interceptTransactionRequest(args, originalRequest);
-      }
-      return originalRequest(args);
-    };
-
-    // Intercept send method (legacy wallets)
-    if (originalSend) {
-      window.ethereum.send = async (method, params) => {
-        if (method === 'eth_sendTransaction') {
-          return this.interceptTransactionRequest({ method, params }, originalSend);
-        }
-        return originalSend(method, params);
-      };
-    }
-
-    console.log('Scathat transaction interceptor injected');
+    // Wallet interception removed
+    return;
   }
 
   async interceptTransactionRequest(args, originalMethod) {
@@ -918,18 +799,8 @@ class ScathatContent {
   }
 
   waitForWalletInjection() {
-    // Listen for wallet injection
-    const checkWallet = setInterval(() => {
-      if (typeof window.ethereum !== 'undefined') {
-        clearInterval(checkWallet);
-        this.interceptEthereumProvider();
-      }
-    }, 1000);
-
-    // Stop checking after 10 seconds
-    setTimeout(() => {
-      clearInterval(checkWallet);
-    }, 10000);
+    // Wallet interception removed
+    return;
   }
 
   showLoadingState(txDetails) {

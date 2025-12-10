@@ -211,7 +211,7 @@ train_data, val_data, test_data = create_splits(
 name: "code_vulnerabilities_v1.0"
 description: "Solidity contracts with vulnerability labels"
 version: "1.0.0"
-created_date: "2024-01-15"
+created_date: "2025-01-15"
 num_samples: 50000
 source: "Ethereum mainnet and testnets"
 license: "CC BY-NC-SA 4.0"

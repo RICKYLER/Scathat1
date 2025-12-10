@@ -26,7 +26,7 @@ const Footer = () => {
           </nav>
 
           <p className="text-sm text-muted-foreground">
-            © 2024 Scathat. All rights reserved.
+            © 2025Scathat. All rights reserved.
           </p>
         </div>
       </div>

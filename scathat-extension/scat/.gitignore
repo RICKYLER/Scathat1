@@ -65,3 +65,8 @@ jspm_packages/
 # Temporary files
 .tmp/
 .temp/
+.next/
+.next/cache/
+trace/
+trace-build/
+*.tsbuildinfo

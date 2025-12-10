@@ -38,6 +38,17 @@ class ResultAggregator:
         except Exception as e:
             logger.warning(f"Failed to initialize bytecode client: {e}")
         
+        # Import code analyzer client (optional dependency)
+        self.code_analyzer_client = None
+        try:
+            from code_analyzer_client import CodeAnalyzerClient
+            self.code_analyzer_client = CodeAnalyzerClient()
+            logger.info("Code analyzer client initialized successfully")
+        except ImportError:
+            logger.warning("Code analyzer client not available - using mock data")
+        except Exception as e:
+            logger.warning(f"Failed to initialize code analyzer client: {e}")
+        
     def aggregate(self, model_outputs: Dict[str, Dict]) -> Dict[str, Any]:
         """
         Aggregate results from all three models with weighted scoring
@@ -203,6 +214,21 @@ class ResultAggregator:
             "fallback": True
         }
     
+    def _create_mock_code_analysis(self) -> Dict[str, Any]:
+        """Create mock code analysis for fallback"""
+        return {
+            "risk_score": 0.5,  # Neutral score
+            "confidence": 0.1,  # Low confidence
+            "vulnerabilities": [],
+            "code_quality": {
+                "complexity": "unknown",
+                "readability": "unknown", 
+                "maintainability": "unknown"
+            },
+            "processing_time_ms": 0,
+            "fallback": True
+        }
+    
     def is_bytecode_service_available(self) -> bool:
         """Check if bytecode analysis service is available"""
         if not self.bytecode_client:
@@ -212,6 +238,47 @@ class ResultAggregator:
             return self.bytecode_client.health_check()
         except Exception:
             return False
+    
+    def is_code_analyzer_service_available(self) -> bool:
+        """Check if code analyzer service is available"""
+        if not self.code_analyzer_client:
+            return False
+        
+        try:
+            return self.code_analyzer_client.health_check()
+        except Exception:
+            return False
+    
+    def analyze_code_real(self, solidity_code: str, contract_name: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Perform real code analysis using the deployed code analyzer API
+        
+        Args:
+            solidity_code: Solidity source code to analyze
+            contract_name: Optional contract name for context
+            
+        Returns:
+            Analysis results in aggregator format
+        """
+        
+        if not self.code_analyzer_client:
+            logger.warning("Code analyzer client not available - using mock data")
+            return self._create_mock_code_analysis()
+        
+        try:
+            # Perform real analysis
+            result = self.code_analyzer_client.analyze_code(solidity_code, contract_name)
+            
+            if result.get('fallback'):
+                logger.warning("Using fallback code analysis (service may be down)")
+            else:
+                logger.info(f"Code analysis completed: score={result['risk_score']:.3f}")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Code analysis failed: {e}")
+            return self._create_mock_code_analysis()
     
     def _calculate_effective_weights(self, code_conf: float, bytecode_conf: float, behavior_conf: float) -> ModelWeights:
         """Calculate effective weights based on model confidence"""

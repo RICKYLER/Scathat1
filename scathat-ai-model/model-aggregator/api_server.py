@@ -25,6 +25,11 @@ class BytecodeAnalysisRequest(BaseModel):
     bytecode: str = Field(..., description="EVM bytecode to analyze")
     contract_address: Optional[str] = Field(None, description="Contract address for context")
 
+class CodeAnalysisRequest(BaseModel):
+    """Request model for code analysis"""
+    solidity_code: str = Field(..., description="Solidity source code to analyze")
+    contract_name: Optional[str] = Field(None, description="Contract name for context")
+
 class MultiModelAnalysisRequest(BaseModel):
     """Request model for multi-model analysis"""
     bytecode: str = Field(..., description="EVM bytecode to analyze")
@@ -36,6 +41,7 @@ class HealthResponse(BaseModel):
     """Health check response model"""
     status: str
     bytecode_service_available: bool
+    code_analyzer_service_available: bool
     aggregator_ready: bool
 
 class AnalysisResponse(BaseModel):
@@ -109,10 +115,12 @@ async def health_check():
         )
     
     bytecode_available = aggregator.is_bytecode_service_available()
+    code_analyzer_available = aggregator.is_code_analyzer_service_available()
     
     return HealthResponse(
         status="healthy" if aggregator else "unhealthy",
         bytecode_service_available=bytecode_available,
+        code_analyzer_service_available=code_analyzer_available,
         aggregator_ready=aggregator is not None
     )
 
@@ -151,6 +159,46 @@ async def analyze_bytecode(request: BytecodeAnalysisRequest):
         
     except Exception as e:
         logger.error(f"Bytecode analysis failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Analysis failed: {str(e)}"
+        )
+
+@app.post("/analyze/code", response_model=AnalysisResponse)
+async def analyze_code(request: CodeAnalysisRequest):
+    """
+    Analyze Solidity source code using the code analyzer service
+    
+    This endpoint performs real-time code analysis using the deployed
+    code analyzer model and returns the results in aggregator format.
+    """
+    
+    if not aggregator:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Aggregator not initialized"
+        )
+    
+    try:
+        import time
+        start_time = time.time()
+        
+        # Perform code analysis
+        result = aggregator.analyze_code_real(
+            request.solidity_code, 
+            request.contract_name
+        )
+        
+        processing_time_ms = int((time.time() - start_time) * 1000)
+        
+        return AnalysisResponse(
+            success=True,
+            result=result,
+            processing_time_ms=processing_time_ms
+        )
+        
+    except Exception as e:
+        logger.error(f"Code analysis failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Analysis failed: {str(e)}"

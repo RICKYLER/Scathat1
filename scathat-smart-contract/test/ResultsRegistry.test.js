@@ -65,62 +65,69 @@ describe("ResultsRegistry", function () {
 
     it("Should allow owner to write risk scores", async function () {
       const riskScore = "LOW_RISK";
+      const riskLevel = 0; // RiskLevel.Safe
       
-      await expect(resultsRegistry.writeRiskScore(testContractAddress, riskScore))
+      await expect(resultsRegistry.writeRiskScore(testContractAddress, riskScore, riskLevel))
         .to.emit(resultsRegistry, "ScoreRecorded")
-        .withArgs(testContractAddress, riskScore, owner.address, anyValue);
+        .withArgs(testContractAddress, riskScore, riskLevel, owner.address, anyValue);
 
       expect(await resultsRegistry.getRiskScore(testContractAddress)).to.equal(riskScore);
     });
 
     it("Should allow authorized writers to write risk scores", async function () {
       const riskScore = "MEDIUM_RISK";
+      const riskLevel = 1; // RiskLevel.Warning
       
-      await expect(resultsRegistry.connect(authorizedWriter).writeRiskScore(testContractAddress, riskScore))
+      await expect(resultsRegistry.connect(authorizedWriter).writeRiskScore(testContractAddress, riskScore, riskLevel))
         .to.emit(resultsRegistry, "ScoreRecorded")
-        .withArgs(testContractAddress, riskScore, authorizedWriter.address, anyValue);
+        .withArgs(testContractAddress, riskScore, riskLevel, authorizedWriter.address, anyValue);
 
       expect(await resultsRegistry.getRiskScore(testContractAddress)).to.equal(riskScore);
     });
 
     it("Should reject unauthorized users from writing scores", async function () {
       const riskScore = "HIGH_RISK";
+      const riskLevel = 2; // RiskLevel.Dangerous
       
       await expect(
-        resultsRegistry.connect(unauthorizedUser).writeRiskScore(testContractAddress, riskScore)
+        resultsRegistry.connect(unauthorizedUser).writeRiskScore(testContractAddress, riskScore, riskLevel)
       ).to.be.revertedWith("ResultsRegistry: caller is not authorized");
     });
 
     it("Should reject zero contract address", async function () {
       const riskScore = "LOW_RISK";
+      const riskLevel = 0; // RiskLevel.Safe
       
       await expect(
-        resultsRegistry.writeRiskScore(ethers.ZeroAddress, riskScore)
+        resultsRegistry.writeRiskScore(ethers.ZeroAddress, riskScore, riskLevel)
       ).to.be.revertedWith("ResultsRegistry: invalid contract address");
     });
 
     it("Should reject empty risk scores", async function () {
+      const riskLevel = 0; // RiskLevel.Safe
       await expect(
-        resultsRegistry.writeRiskScore(testContractAddress, "")
+        resultsRegistry.writeRiskScore(testContractAddress, "", riskLevel)
       ).to.be.revertedWith("ResultsRegistry: risk score cannot be empty");
     });
 
     it("Should reject risk scores that are too long", async function () {
       const longRiskScore = "A".repeat(257); // 257 characters
+      const riskLevel = 0; // RiskLevel.Safe
       
       await expect(
-        resultsRegistry.writeRiskScore(testContractAddress, longRiskScore)
+        resultsRegistry.writeRiskScore(testContractAddress, longRiskScore, riskLevel)
       ).to.be.revertedWith("ResultsRegistry: risk score exceeds maximum length of 256 characters");
     });
 
     it("Should prevent overwriting existing scores", async function () {
       const initialScore = "LOW_RISK";
       const newScore = "HIGH_RISK";
+      const riskLevel = 0; // RiskLevel.Safe
       
-      await resultsRegistry.writeRiskScore(testContractAddress, initialScore);
+      await resultsRegistry.writeRiskScore(testContractAddress, initialScore, riskLevel);
       
       await expect(
-        resultsRegistry.writeRiskScore(testContractAddress, newScore)
+        resultsRegistry.writeRiskScore(testContractAddress, newScore, riskLevel)
       ).to.be.revertedWith("ResultsRegistry: score already exists for this contract");
     });
   });
@@ -128,7 +135,7 @@ describe("ResultsRegistry", function () {
   describe("Reading Risk Scores", function () {
     beforeEach(async function () {
       await resultsRegistry.setWriterAuthorization(authorizedWriter.address, true);
-      await resultsRegistry.writeRiskScore(testContractAddress, "MODERATE_RISK");
+      await resultsRegistry.writeRiskScore(testContractAddress, "MODERATE_RISK", 0); // RiskLevel.Safe
     });
 
     it("Should return correct risk score", async function () {
@@ -160,22 +167,23 @@ describe("ResultsRegistry", function () {
   describe("Updating Risk Scores", function () {
     beforeEach(async function () {
       await resultsRegistry.setWriterAuthorization(authorizedWriter.address, true);
-      await resultsRegistry.writeRiskScore(testContractAddress, "INITIAL_SCORE");
+      await resultsRegistry.writeRiskScore(testContractAddress, "INITIAL_SCORE", 0); // RiskLevel.Safe
     });
 
     it("Should allow owner to update scores", async function () {
       const newScore = "UPDATED_SCORE";
+      const newRiskLevel = 1; // RiskLevel.Warning
       
-      await expect(resultsRegistry.updateRiskScore(testContractAddress, newScore))
+      await expect(resultsRegistry.updateRiskScore(testContractAddress, newScore, newRiskLevel))
         .to.emit(resultsRegistry, "ScoreRecorded")
-        .withArgs(testContractAddress, newScore, owner.address, anyValue);
+        .withArgs(testContractAddress, newScore, newRiskLevel, owner.address, anyValue);
 
       expect(await resultsRegistry.getRiskScore(testContractAddress)).to.equal(newScore);
     });
 
     it("Should reject unauthorized users from updating scores", async function () {
       await expect(
-        resultsRegistry.connect(unauthorizedUser).updateRiskScore(testContractAddress, "NEW_SCORE")
+        resultsRegistry.connect(unauthorizedUser).updateRiskScore(testContractAddress, "NEW_SCORE", 0)
       ).to.be.reverted; // Ownable custom error
     });
 
@@ -183,7 +191,7 @@ describe("ResultsRegistry", function () {
       const nonExistentAddress = "0x0000000000000000000000000000000000000001";
       
       await expect(
-        resultsRegistry.updateRiskScore(nonExistentAddress, "NEW_SCORE")
+        resultsRegistry.updateRiskScore(nonExistentAddress, "NEW_SCORE", 0)
       ).to.be.revertedWith("ResultsRegistry: no existing score to update");
     });
   });
@@ -191,13 +199,13 @@ describe("ResultsRegistry", function () {
   describe("Removing Risk Scores", function () {
     beforeEach(async function () {
       await resultsRegistry.setWriterAuthorization(authorizedWriter.address, true);
-      await resultsRegistry.writeRiskScore(testContractAddress, "SCORE_TO_REMOVE");
+      await resultsRegistry.writeRiskScore(testContractAddress, "SCORE_TO_REMOVE", 0); // RiskLevel.Safe
     });
 
     it("Should allow owner to remove scores", async function () {
       await expect(resultsRegistry.removeRiskScore(testContractAddress))
         .to.emit(resultsRegistry, "ScoreRecorded")
-        .withArgs(testContractAddress, "", owner.address, anyValue);
+        .withArgs(testContractAddress, "", 0, owner.address, anyValue); // RiskLevel.Safe
 
       expect(await resultsRegistry.hasRiskScore(testContractAddress)).to.be.false;
     });
@@ -229,8 +237,8 @@ describe("ResultsRegistry", function () {
       const address1 = "0x0000000000000000000000000000000000000001";
       const address2 = "0x0000000000000000000000000000000000000002";
       
-      await resultsRegistry.writeRiskScore(address1, "SCORE_1");
-      await resultsRegistry.writeRiskScore(address2, "SCORE_2");
+      await resultsRegistry.writeRiskScore(address1, "SCORE_1", 0); // RiskLevel.Safe
+      await resultsRegistry.writeRiskScore(address2, "SCORE_2", 1); // RiskLevel.Warning
       
       expect(await resultsRegistry.getRiskScore(address1)).to.equal("SCORE_1");
       expect(await resultsRegistry.getRiskScore(address2)).to.equal("SCORE_2");

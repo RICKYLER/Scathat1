@@ -285,6 +285,14 @@ async def scan_contract(request: ScanRequest) -> ScanResponse:
         # Convert risk score to string format for compatibility
         risk_score_str = f"{scan_result.final_risk_score:.2f}" if scan_result.final_risk_score is not None else "0.50"
         
+        # Map risk level string to integer for smart contract
+        risk_level_map = {
+            "Safe": 0,    
+            "Warning": 1, 
+            "Dangerous": 2 
+        }
+        risk_level_int = risk_level_map.get(scan_result.risk_level, 1)  # Default to WARNING if unknown
+        
         # 3. Write risk score to on-chain registry (demo mode)
         registry_address = os.getenv("RESULTS_REGISTRY_ADDRESS")
         private_key = os.getenv("DEPLOYER_PRIVATE_KEY")
@@ -299,6 +307,7 @@ async def scan_contract(request: ScanRequest) -> ScanResponse:
             tx_hash = web3_service.write_score_to_chain(
                 contract_address=request.contract_address,
                 risk_score=risk_score_str,
+                risk_level=risk_level_int,
                 private_key=private_key,
                 registry_address=registry_address,
                 registry_abi=registry_abi

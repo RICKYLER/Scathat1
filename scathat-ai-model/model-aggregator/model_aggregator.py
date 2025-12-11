@@ -49,6 +49,20 @@ class ResultAggregator:
         except Exception as e:
             logger.warning(f"Failed to initialize code analyzer client: {e}")
         
+        # Import smart contract client (optional dependency)
+        self.smart_contract_client = None
+        try:
+            from smart_contract_client import smart_contract_client
+            self.smart_contract_client = smart_contract_client
+            if self.smart_contract_client.is_connected():
+                logger.info("Smart contract client initialized successfully")
+            else:
+                logger.warning("Smart contract client not connected to blockchain")
+        except ImportError:
+            logger.warning("Smart contract client not available - blockchain writes disabled")
+        except Exception as e:
+            logger.warning(f"Failed to initialize smart contract client: {e}")
+        
     def aggregate(self, model_outputs: Dict[str, Dict]) -> Dict[str, Any]:
         """
         Aggregate results from all three models with weighted scoring
@@ -397,6 +411,65 @@ class ResultAggregator:
                 "Maintain standard security practices",
                 "No immediate action needed"
             ]
+    
+    def write_to_blockchain(self, contract_address: str, analysis_result: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Write analysis results to the blockchain using the smart contract
+        
+        Args:
+            contract_address: The contract address being analyzed
+            analysis_result: The aggregated analysis result to store
+            
+        Returns:
+            Dictionary with blockchain write status and transaction details
+        """
+        
+        if not self.smart_contract_client:
+            logger.warning("Smart contract client not available - blockchain writes disabled")
+            return {
+                "success": False,
+                "error": "Smart contract client not available",
+                "transaction_hash": None
+            }
+        
+        if not self.smart_contract_client.is_connected():
+            logger.warning("Smart contract client not connected to blockchain")
+            return {
+                "success": False,
+                "error": "Blockchain connection not available",
+                "transaction_hash": None
+            }
+        
+        try:
+            # Format the risk score for blockchain storage
+            formatted_score = self.smart_contract_client.format_risk_score(analysis_result)
+            
+            # Write to blockchain
+            tx_hash = self.smart_contract_client.write_risk_score(
+                contract_address=contract_address,
+                risk_score=formatted_score["risk_score"],
+                risk_level=formatted_score["risk_level"],
+                confidence=formatted_score["confidence"]
+            )
+            
+            logger.info(f"Successfully wrote risk score to blockchain for {contract_address}")
+            logger.info(f"Transaction hash: {tx_hash}")
+            
+            return {
+                "success": True,
+                "transaction_hash": tx_hash,
+                "contract_address": contract_address,
+                "risk_score": formatted_score["risk_score"],
+                "risk_level": formatted_score["risk_level"]
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to write to blockchain: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "transaction_hash": None
+            }
 
 def create_sample_model_outputs() -> Dict[str, Dict]:
     """Create sample model outputs for testing"""

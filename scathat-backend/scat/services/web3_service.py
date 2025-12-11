@@ -243,7 +243,7 @@ class Web3Service:
             "client_version": self.w3.client_version if hasattr(self.w3, 'client_version') else "unknown"
         }
 
-    def write_score_to_chain(self, contract_address: str, risk_score: str, 
+    def write_score_to_chain(self, contract_address: str, risk_score: str, risk_level: int,
                            private_key: str, registry_address: str, 
                            registry_abi: List[Dict[str, Any]]) -> Optional[str]:
         """
@@ -252,6 +252,7 @@ class Web3Service:
         Args:
             contract_address (str): The contract address to score
             risk_score (str): The risk score to write
+            risk_level (int): The risk level (0 for Safe, 1 for Warning, 2 for Critical)
             private_key (str): Private key for signing transaction
             registry_address (str): ResultsRegistry contract address
             registry_abi (List[Dict[str, Any]]): ResultsRegistry contract ABI
@@ -269,7 +270,8 @@ class Web3Service:
             # Build transaction
             transaction = registry_contract.functions.writeRiskScore(
                 self.w3.to_checksum_address(contract_address),
-                risk_score
+                risk_score,
+                risk_level
             ).build_transaction({
                 'from': self.w3.eth.account.from_key(private_key).address,
                 'nonce': self.w3.eth.get_transaction_count(self.w3.eth.account.from_key(private_key).address),

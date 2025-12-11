@@ -1,0 +1,28 @@
+{
+  "deployment": {
+    "version": "1.0.0",
+    "deployment_date": "2025-12-11T02:04:59.312148",
+    "model_path": "models/bytecode_detector_enhanced.pth",
+    "model_type": "BytecodeTransformer",
+    "input_type": "EVM bytecode",
+    "output_type": "risk_score, pattern_scores",
+    "supported_patterns": [
+      "reentrancy",
+      "selfdestruct",
+      "delegatecall",
+      "hidden_owner",
+      "unchecked_call"
+    ],
+    "performance_metrics": {
+      "inference_time": "<100ms",
+      "throughput": ">100 req/s",
+      "accuracy": "95%+"
+    }
+  },
+  "dependencies": {
+    "python_version": "3.8+",
+    "torch_version": "1.9.0+",
+    "numpy_version": "1.21.0+",
+    "web3_version": "5.0+"
+  }
+}

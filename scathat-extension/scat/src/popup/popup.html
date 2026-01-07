@@ -10,7 +10,7 @@
     <div class="popup-container">
         <!-- Header Section -->
         <div class="header">
-            <img src="../../assets/icons/icon-48.png" alt="Scathat Logo" class="logo">
+            <img src="../../assets/icons/logo1.jpg" alt="Scathat Logo" class="logo">
             <h1>Scathat</h1>
             <div class="status-indicator" id="statusIndicator">
                 <span class="status-dot"></span>
@@ -23,32 +23,7 @@
             <h2>Connect to Scathat</h2>
             <p>Secure your web3 experience with AI-powered contract analysis</p>
             
-            <!-- Wallet Connection Section -->
-            <div class="wallet-section">
-                <h3>Wallet Connection</h3>
-                <div class="wallet-status" id="walletStatus">
-                    <div class="wallet-indicator">
-                        <span class="wallet-dot" id="walletDot"></span>
-                        <span class="wallet-text" id="walletText">Not connected</span>
-                    </div>
-                    <div class="wallet-info" id="walletInfo" style="display: none;">
-                        <span class="wallet-address" id="walletAddress"></span>
-                        <span class="network-info" id="networkInfo"></span>
-                    </div>
-                </div>
-                
-                <div class="wallet-actions">
-                    <button id="connectWalletBtn" class="btn btn-primary">
-                        Connect Wallet
-                    </button>
-                    <button id="disconnectWalletBtn" class="btn btn-secondary" style="display: none;">
-                        Disconnect Wallet
-                    </button>
-                    <button id="switchNetworkBtn" class="btn btn-outline" style="display: none;">
-                        Switch to Base
-                    </button>
-                </div>
-            </div>
+            <!-- Wallet functionality removed -->
 
             <div class="connection-form">
                 <input 
@@ -136,14 +111,12 @@
             <div class="links">
                 <a href="#" id="helpLink">Help</a>
                 <a href="#" id="feedbackLink">Feedback</a>
+                <a href="#" id="privacyLink">Privacy Policy</a>
             </div>
         </div>
     </div>
 
-    <!-- Load ethers.js from CDN for wallet functionality -->
-    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"
-            integrity="sha384-0MvJpD5fL8pI1Rg+1VlVWpE+7vL6p+1VkL5a5p5p5p5p5p5p5p5p5p5p5p5p5p5p5"
-            crossorigin="anonymous"></script>
     <script src="popup.js"></script>
 </body>
 </html>
+

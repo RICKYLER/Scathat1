@@ -4,17 +4,20 @@
   "description": "AI-powered real-time smart contract analysis and security protection browser extension",
   "main": "src/popup/popup.js",
   "scripts": {
-    "build": "webpack",
-    "dev": "webpack --watch",
+    "build": "node node_modules/webpack/bin/webpack.js",
+    "dev": "node node_modules/webpack/bin/webpack.js --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
+    "@babel/core": "^7.28.5",
+    "@babel/preset-env": "^7.28.5",
+    "babel-loader": "^10.0.0",
     "ethers": "^6.8.0"
   },
   "devDependencies": {
-    "webpack": "^5.88.0",
-    "webpack-cli": "^5.1.4",
-    "copy-webpack-plugin": "^11.0.0"
+    "copy-webpack-plugin": "^11.0.0",
+    "webpack": "^5.103.0",
+    "webpack-cli": "^5.1.4"
   },
   "keywords": [
     "browser-extension",
@@ -26,3 +29,4 @@
   "author": "Scathat Team",
   "license": "MIT"
 }
+

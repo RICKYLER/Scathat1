@@ -228,3 +228,4 @@ This extension is part of the Scathat ecosystem. See main project repository for
 **Important**: This extension is designed for security purposes only. Always verify contract addresses and exercise caution when interacting with smart contracts.
 
 For enhanced protection, use with the full Scathat application suite.
+

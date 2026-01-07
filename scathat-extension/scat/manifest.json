@@ -22,7 +22,7 @@
   "content_scripts": [
     {
       "matches": ["*://*/*"],
-      "js": ["src/content/content.js"],
+      "js": ["src/content/riskEngine.js", "src/content/content.js"],
       "run_at": "document_idle"
     }
   ],
@@ -30,17 +30,17 @@
     "default_popup": "src/popup/popup.html",
     "default_title": "Scathat Security",
     "default_icon": {
-      "16": "assets/icons/icon-16.png",
-      "32": "assets/icons/icon-32.png",
-      "48": "assets/icons/icon-48.png",
-      "128": "assets/icons/icon-128.png"
+      "16": "assets/icons/logo1.jpg",
+      "32": "assets/icons/logo1.jpg",
+      "48": "assets/icons/logo1.jpg",
+      "128": "assets/icons/logo1.jpg"
     }
   },
   "icons": {
-    "16": "assets/icons/icon-16.png",
-    "32": "assets/icons/icon-32.png",
-    "48": "assets/icons/icon-48.png",
-    "128": "assets/icons/icon-128.png"
+    "16": "assets/icons/logo1.jpg",
+    "32": "assets/icons/logo1.jpg",
+    "48": "assets/icons/logo1.jpg",
+    "128": "assets/icons/logo1.jpg"
   },
   "web_accessible_resources": [
     {
@@ -52,3 +52,4 @@
     "extension_pages": "script-src 'self'; object-src 'self'"
   }
 }
+

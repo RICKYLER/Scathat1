@@ -1,0 +1,21 @@
+{
+  "name": "scathat-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Backend package scaffold for Scathat extension (health/config/analyze endpoints).",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {},
+  "dependencies": {},
+  "keywords": [
+    "scathat",
+    "backend",
+    "api",
+    "security",
+    "contracts"
+  ]
+}
+

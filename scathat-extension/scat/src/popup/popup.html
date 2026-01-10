@@ -20,24 +20,22 @@
 
         <!-- Connection Section -->
         <div class="section" id="connectionSection">
-            <h2>Connect Wallet</h2>
-            <p>Secure your web3 experience with AI-powered contract analysis</p>
+            <p class="hero-text">Secure your Web3 experience with AI powered contract analysis</p>
             
-            <!-- Wallet Connection -->
+            <!-- Wallet Connection Status -->
             <div class="wallet-section">
-                <h3>Wallet Connection</h3>
+                <h3>Wallet Status</h3>
                 <div class="wallet-status" id="walletStatus">
                     <span class="wallet-dot"></span>
-                    <span class="wallet-text">Checking wallet...</span>
+                    <span class="wallet-text">Checking wallet status...</span>
                 </div>
-
-                <button id="disconnectWalletBtn" class="btn btn-secondary" style="display: none;">
-                    Disconnect Wallet
-                </button>
+                <div class="wallet-address" id="walletAddress" style="display: none; margin-top: 8px; font-size: 12px; color: #666;">
+                    Address: <span id="walletAddressText"></span>
+                </div>
             </div>
 
             <div class="connection-form" style="display: flex; justify-content: center; margin: 20px 0;">
-                <button id="connectBtn" class="btn btn-primary">
+                <button id="connectBtn" class="btn btn-primary" style="display: none;">
                     Connect Wallet
                 </button>
                 <button id="disconnectBtn" class="btn btn-secondary" style="display: none;">

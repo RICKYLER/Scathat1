@@ -1,7 +1,20 @@
 "use client"
 
-import { useState } from "react"
-import { CheckCircle2, AlertTriangle, AlertCircle, Loader2, Zap, Check, X } from "lucide-react"
+import { useState, useEffect } from "react"
+import { CheckCircle2, AlertTriangle, AlertCircle, Loader2, Zap, Check, X, Wallet } from "lucide-react"
+
+// Type declarations for Ethereum provider and Chrome extension
+declare global {
+  interface Window {
+    ethereum?: {
+      request: (args: { method: string; params?: any[] }) => Promise<any>
+      on: (event: string, callback: (...args: any[]) => void) => void
+      removeListener: (event: string, callback: (...args: any[]) => void) => void
+    }
+  }
+  
+  const chrome: any
+}
 
 type ScanStatus = "idle" | "scanning" | "safe" | "warning" | "dangerous"
 type ScanStage = "decompile" | "analysis" | "audit" | "scoring" | "complete"
@@ -35,6 +48,11 @@ export default function ScannerInterface() {
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [loadedIssuesCount, setLoadedIssuesCount] = useState(0)
   const [scanProgress, setScanProgress] = useState(0)
+  
+  // Wallet connection state
+  const [walletConnected, setWalletConnected] = useState(false)
+  const [walletAccounts, setWalletAccounts] = useState<string[]>([])
+  const [walletChainId, setWalletChainId] = useState<string>("")
 
   const vulnerabilitiesDb: Record<string, Issue> = {
     reentrancy: {
@@ -375,6 +393,138 @@ export default function ScannerInterface() {
     setScanProgress(0)
   }
 
+  // Helper function to send message to Scathat extension
+  const sendToScathatExtension = async (message: any): Promise<boolean> => {
+    if (typeof chrome === 'undefined' || !chrome.runtime) {
+      console.log('Chrome runtime not available');
+      return false;
+    }
+    
+    try {
+      // Your actual extension ID
+      const extensionId = 'cbjglphdciillhmiolfgklamaffcnbln';
+      
+      console.log('Sending message to extension:', { extensionId, message });
+      
+      // Use Promise wrapper for proper async/await
+      return new Promise((resolve) => {
+        chrome.runtime.sendMessage(extensionId, message, (response: any) => {
+          if (chrome.runtime.lastError) {
+            console.log('Extension not available - full error:', {
+              error: chrome.runtime.lastError,
+              extensionId: extensionId,
+              message: message
+            });
+            resolve(false);
+            return;
+          }
+          console.log('Extension responded:', response);
+          resolve(response && response.success);
+        });
+      });
+    } catch (error) {
+      console.log('Error sending to extension:', error);
+      return false;
+    }
+  };
+
+  // Wallet connection functions
+  const connectWallet = async () => {
+    try {
+      if (typeof window.ethereum === 'undefined') {
+        alert('No Ethereum wallet found. Please install MetaMask or another Web3 wallet.')
+        return
+      }
+
+      // Request account access
+      const accounts = await window.ethereum.request({
+        method: 'eth_requestAccounts'
+      })
+
+      // Get chain ID
+      const chainId = await window.ethereum.request({
+        method: 'eth_chainId'
+      })
+
+      setWalletConnected(true)
+      setWalletAccounts(accounts)
+      setWalletChainId(chainId)
+
+      // Send wallet state to extension
+      console.log('Sending wallet state to extension:', { accounts, chainId });
+      await sendToScathatExtension({
+        type: 'WALLET_STATE_UPDATE',
+        walletConnected: true,
+        accounts: accounts,
+        chainId: chainId
+      });
+
+      console.log('Wallet connected:', accounts[0])
+
+    } catch (error) {
+       console.error('Wallet connection failed:', error)
+       alert('Wallet connection failed: ' + (error instanceof Error ? error.message : 'Unknown error'))
+     }
+  }
+
+  const disconnectWallet = async () => {
+    setWalletConnected(false)
+    setWalletAccounts([])
+    setWalletChainId("")
+    
+    // Send disconnect to extension
+    await sendToScathatExtension({
+      type: 'WALLET_STATE_UPDATE',
+      walletConnected: false,
+      accounts: [],
+      chainId: ""
+    });
+  }
+
+  // Listen for wallet events
+  useEffect(() => {
+    if (typeof window.ethereum === 'undefined') return
+
+    const handleAccountsChanged = (accounts: string[]) => {
+      setWalletAccounts(accounts)
+      setWalletConnected(accounts.length > 0)
+      
+      // Send update to extension
+      sendToScathatExtension({
+        type: 'WALLET_STATE_UPDATE',
+        walletConnected: accounts.length > 0,
+        accounts: accounts,
+        chainId: walletChainId
+      }).catch(error => {
+        console.log('Extension not available for wallet state sync:', error)
+      });
+    }
+
+    const handleChainChanged = (chainId: string) => {
+      setWalletChainId(chainId)
+      
+      // Send update to extension - use the actual chainId parameter directly
+      sendToScathatExtension({
+        type: 'WALLET_STATE_UPDATE',
+        walletConnected: walletConnected, // This might be stale, but we need to send something
+        accounts: walletAccounts, // This might be stale, but we need to send something
+        chainId: chainId
+      }).catch(error => {
+        console.log('Extension not available for wallet state sync:', error)
+      });
+    }
+
+    window.ethereum?.on('accountsChanged', handleAccountsChanged)
+     window.ethereum?.on('chainChanged', handleChainChanged)
+
+     return () => {
+       if (window.ethereum?.removeListener) {
+         window.ethereum.removeListener('accountsChanged', handleAccountsChanged)
+         window.ethereum.removeListener('chainChanged', handleChainChanged)
+       }
+     }
+  }, [walletConnected, walletAccounts, walletChainId])
+
   return (
     <div className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
@@ -387,6 +537,29 @@ export default function ScannerInterface() {
             <h1 className="text-3xl font-bold text-foreground">Scathat Scanner</h1>
           </div>
           <p className="text-muted-foreground text-sm">Real-Time AI Smart Contract Security</p>
+        </div>
+
+        {/* Wallet Connection Section */}
+        <div className="bg-card rounded-xl border border-border p-6 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Wallet className="w-5 h-5 text-muted-foreground" />
+              <span className="text-sm font-medium text-foreground">
+                {walletConnected ? 'Wallet Connected' : 'Connect Wallet'}
+              </span>
+              {walletConnected && (
+                <span className="text-xs text-muted-foreground">
+                  {walletAccounts[0]?.slice(0, 6)}...{walletAccounts[0]?.slice(-4)}
+                </span>
+              )}
+            </div>
+            <button
+              onClick={walletConnected ? disconnectWallet : connectWallet}
+              className="px-4 py-2 text-sm font-medium rounded-lg border border-border hover:bg-accent transition-colors"
+            >
+              {walletConnected ? 'Disconnect' : 'Connect Wallet'}
+            </button>
+          </div>
         </div>
 
         {/* Main Scanner Section */}

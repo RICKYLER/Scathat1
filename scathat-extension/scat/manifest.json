@@ -11,14 +11,21 @@
     "notifications",
     "webRequest"
   ],
+  "externally_connectable": {
+    "matches": [
+      "https://scathat.com/*",
+      "http://localhost:3000/*",
+      "http://localhost/*"
+    ],
+    "ids": ["*"]
+  },
   "host_permissions": [
     "*://*/*",
     "<all_urls>",
     "about:blank"
   ],
   "background": {
-    "service_worker": "src/background/background.js",
-    "type": "module"
+    "service_worker": "src/background/background.js"
   },
   "content_scripts": [
     {

@@ -54,7 +54,7 @@ const Header = () => {
           </nav>
 
           <div className="hidden md:flex items-center">
-            <Button size="sm" className="glow-primary">Get Started</Button>
+            <Button size="sm" className="glow-primary" onClick={() => window.location.href = '/try-scan'}>Connect Wallet</Button>
           </div>
 
           <button
@@ -79,7 +79,7 @@ const Header = () => {
                 </a>
               ))}
               <div className="pt-4 border-t border-border/50">
-                <Button size="sm" className="w-full glow-primary">Get Started</Button>
+                <Button size="sm" className="w-full glow-primary" onClick={() => window.location.href = '/try-scan'}>Connect Wallet</Button>
               </div>
             </nav>
           </div>

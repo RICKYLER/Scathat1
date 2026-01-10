@@ -23,17 +23,48 @@ class ScathatPopup {
     async init() {
         await this.loadSettings();
         await this.checkConnectionStatus();
-        await this.checkWalletStatus();
         this.setupEventListeners();
+        this.setupWalletListener();
         this.updateUI();
         this.updateWalletUI();
         
         console.log('Scathat popup initialized');
     }
 
+    setupWalletListener() {
+        // Listen for wallet state updates from frontend
+        chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+            if (request.type === 'WALLET_STATE_UPDATE') {
+                this.handleWalletStateUpdate(request);
+                sendResponse({ success: true });
+            }
+            return true; // Keep message channel open for async response
+        });
+    }
+
+    handleWalletStateUpdate(request) {
+        this.walletConnected = request.walletConnected;
+        this.walletAccounts = request.accounts || [];
+        this.walletChainId = request.chainId || "";
+        
+        console.log('Wallet state updated from frontend:', {
+            connected: this.walletConnected,
+            accounts: this.walletAccounts,
+            chainId: this.walletChainId
+        });
+        
+        this.updateWalletUI();
+        
+        if (this.walletConnected) {
+            this.addActivity('Wallet connected from frontend', 'connect');
+        } else {
+            this.addActivity('Wallet disconnected from frontend', 'disconnect');
+        }
+    }
+
     async loadSettings() {
         try {
-            const result = await chrome.storage.local.get(['settings', 'stats']);
+            const result = await chrome.storage.local.get(['settings', 'stats', 'walletState']);
             this.settings = result.settings || {
                 autoScan: true,
                 notifications: true,
@@ -43,8 +74,19 @@ class ScathatPopup {
             if (result.stats) {
                 this.stats = result.stats;
             }
+
+            // Load saved wallet state
+            if (result.walletState) {
+                this.walletConnected = result.walletState.connected;
+                this.walletAccounts = result.walletState.accounts || [];
+                this.walletChainId = result.walletState.chainId || "";
+                
+                console.log('Loaded saved wallet state:', result.walletState);
+            }
             
             this.updateSettingsUI();
+            // We need to update wallet UI here as well since we loaded the state
+            this.updateWalletUI(); 
         } catch (error) {
             console.error('Error loading settings:', error);
         }
@@ -55,7 +97,11 @@ class ScathatPopup {
         const dot = indicator.querySelector('.status-dot');
         const text = indicator.querySelector('.status-text');
         
-        if (this.connected) {
+        // Show wallet connection status instead of backend connection status
+        if (this.walletConnected && this.walletAccounts.length > 0) {
+            dot.classList.add('connected');
+            text.textContent = 'Wallet Connected';
+        } else if (this.connected) {
             dot.classList.add('connected');
             text.textContent = 'Connected';
         } else {
@@ -68,24 +114,16 @@ class ScathatPopup {
 
     setupEventListeners() {
         document.getElementById('connectBtn').addEventListener('click', async () => {
-            await this.connectWallet();
+            await this.connect();
         });
 
         document.getElementById('disconnectBtn').addEventListener('click', async () => {
             await this.disconnect();
         });
 
-        document.getElementById('connectWalletBtn').addEventListener('click', async () => {
-            await this.connectWallet();
-        });
 
-        document.getElementById('disconnectWalletBtn').addEventListener('click', async () => {
-            await this.disconnectWallet();
-        });
 
-        document.getElementById('scanCurrentPage').addEventListener('click', async () => {
-            await this.scanCurrentPage();
-        });
+
 
         document.getElementById('openDashboard').addEventListener('click', () => {
             this.openDashboard();
@@ -158,10 +196,14 @@ class ScathatPopup {
     async checkWalletStatus() {
         try {
             // Send message to background script to check wallet status
-            const response = await chrome.runtime.sendMessage({ type: 'GET_WALLET_STATUS' });
+            const response = await chrome.runtime.sendMessage({ type: 'DETECT_WALLET' });
             this.walletDetected = response?.detected || false;
             this.walletConnected = response?.connected || false;
             this.walletAccounts = response?.accounts || [];
+            
+            if (response?.wallets) {
+                console.log('Detected wallets:', response.wallets);
+            }
         } catch (error) {
             console.log('No wallet detected or content script not ready:', error.message);
             this.walletDetected = false;
@@ -172,21 +214,94 @@ class ScathatPopup {
 
     async connectWallet() {
         try {
+            this.showLoading('Connecting wallet...');
+            
             const response = await chrome.runtime.sendMessage({ type: 'CONNECT_WALLET' });
+            
             if (response.success) {
                 this.walletConnected = true;
-                this.addActivity('Wallet connected successfully', 'connect');
+                
+                if (response.usingBridge) {
+                    this.addActivity('Wallet connected via bridge page', 'connect');
+                    this.showInfo('Wallet connected using bridge page. You can close the bridge tab.');
+                } else {
+                    this.addActivity('Wallet connected successfully', 'connect');
+                }
+                
+                // Update wallet accounts and chain info
+                await this.updateWalletInfo();
                 
                 // After connecting, try to sign a message for authentication
                 await this.signAuthenticationMessage();
+                
             } else {
-                this.showError('Wallet connection failed: ' + response.error);
+                // Handle specific error cases
+                if (response.error?.includes('browser internal pages')) {
+                    this.showError('Please navigate to a regular website to connect your wallet');
+                } else if (response.error?.includes('navigate to a regular website')) {
+                    this.showError('No website available for wallet connection. Using bridge page...');
+                    // Auto-retry with bridge page
+                    await this.connectWithBridge();
+                } else {
+                    this.showError('Wallet connection failed: ' + response.error);
+                }
             }
+            
         } catch (error) {
             console.error('Wallet connection error:', error);
             this.showError('Wallet connection error: ' + error.message);
         }
         this.updateWalletUI();
+    }
+    
+    async connectWithBridge() {
+        try {
+            this.showLoading('Opening bridge page for wallet connection...');
+            
+            // Create bridge page tab
+            const bridgeTab = await chrome.tabs.create({
+                url: chrome.runtime.getURL('src/bridge/bridge.html'),
+                active: true
+            });
+            
+            // Wait for bridge page to load and attempt connection
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Try connecting again
+            const response = await chrome.runtime.sendMessage({ type: 'CONNECT_WALLET' });
+            
+            if (response.success) {
+                this.walletConnected = true;
+                this.addActivity('Wallet connected via bridge', 'connect');
+                await this.updateWalletInfo();
+                await this.signAuthenticationMessage();
+            } else {
+                this.showError('Bridge connection failed: ' + response.error);
+            }
+            
+        } catch (error) {
+            console.error('Bridge connection error:', error);
+            this.showError('Bridge connection failed: ' + error.message);
+        }
+    }
+    
+    async updateWalletInfo() {
+        try {
+            // Get current accounts
+            const accountsResponse = await chrome.runtime.sendMessage({ type: 'GET_ACCOUNTS' });
+            if (accountsResponse.success) {
+                this.walletAccounts = accountsResponse.accounts || [];
+            }
+            
+            // Get current chain ID
+            const chainResponse = await chrome.runtime.sendMessage({ type: 'GET_CHAIN_ID' });
+            if (chainResponse.success) {
+                this.currentChainId = chainResponse.chainId;
+            }
+            
+        } catch (error) {
+            console.error('Error updating wallet info:', error);
+        }
     }
 
     // Sign an authentication message to prove wallet ownership
@@ -286,28 +401,25 @@ class ScathatPopup {
         const walletStatus = document.getElementById('walletStatus');
         const walletDot = walletStatus.querySelector('.wallet-dot');
         const walletText = walletStatus.querySelector('.wallet-text');
-        const connectBtn = document.getElementById('connectWalletBtn');
-        const disconnectBtn = document.getElementById('disconnectWalletBtn');
+        const walletAddress = document.getElementById('walletAddress');
+        const walletAddressText = document.getElementById('walletAddressText');
 
-        if (this.walletConnected) {
+        console.log('Updating wallet UI:', {
+            connected: this.walletConnected,
+            accounts: this.walletAccounts,
+            walletAddressElement: !!walletAddress,
+            walletAddressTextElement: !!walletAddressText
+        });
+
+        if (this.walletConnected && this.walletAccounts.length > 0) {
             walletDot.classList.add('connected');
-            walletDot.classList.remove('detected');
-            walletText.textContent = this.walletAccounts.length > 0 
-                ? `Connected: ${this.walletAccounts[0].slice(0, 8)}...`
-                : 'Wallet Connected';
-            connectBtn.style.display = 'none';
-            disconnectBtn.style.display = '';
-        } else if (this.walletDetected) {
-            walletDot.classList.add('detected');
-            walletDot.classList.remove('connected');
-            walletText.textContent = 'Wallet Detected';
-            connectBtn.style.display = '';
-            disconnectBtn.style.display = 'none';
+            walletText.textContent = 'Wallet Connected';
+            if (walletAddress) walletAddress.style.display = 'block';
+            if (walletAddressText) walletAddressText.textContent = `${this.walletAccounts[0].slice(0, 6)}...${this.walletAccounts[0].slice(-4)}`;
         } else {
-            walletDot.classList.remove('connected', 'detected');
-            walletText.textContent = 'No Wallet Found';
-            connectBtn.style.display = 'none';
-            disconnectBtn.style.display = 'none';
+            walletDot.classList.remove('connected');
+            walletText.textContent = 'Not Connected';
+            if (walletAddress) walletAddress.style.display = 'none';
         }
     }
 
@@ -346,9 +458,9 @@ class ScathatPopup {
     }
 
     openDashboard() {
-        // Open the main Scathat dashboard
+        // Open the main Scathat website
         chrome.tabs.create({
-            url: chrome.runtime.getURL('../../dashboard/index.html')
+            url: 'https://scathat.vercel.app/'
         });
     }
 

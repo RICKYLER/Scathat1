@@ -93,6 +93,15 @@ body {
     margin-bottom: 10px;
 }
 
+.hero-text {
+    font-size: 18px;
+    font-weight: 500;
+    text-align: center;
+    margin-bottom: 20px;
+    color: hsl(var(--foreground));
+    line-height: 1.4;
+}
+
 .input-field {
     width: 100%;
     padding: 10px;

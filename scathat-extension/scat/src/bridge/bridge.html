@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Scathat Wallet Bridge</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 400px;
+            margin: 50px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #4a5568;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        .connected {
+            background: #e6fffa;
+            color: #234e52;
+            border: 1px solid #81e6d9;
+        }
+        .disconnected {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #fc8181;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Scathat Wallet Bridge</h1>
+        <div id="status" class="status hidden">
+            <span id="statusText">Initializing...</span>
+        </div>
+        <div id="instructions" class="hidden">
+            <p>This page acts as a bridge for wallet connections when no regular website is open.</p>
+            <p>You can safely close this tab after connecting your wallet.</p>
+        </div>
+    </div>
+
+    <script>
+        // Add tab ID to URL for content script identification
+        chrome.tabs.getCurrent((tab) => {
+            if (tab) {
+                const url = new URL(window.location.href);
+                url.searchParams.set('tabId', tab.id);
+                window.history.replaceState({}, '', url.toString());
+            }
+        });
+
+        // Update UI based on connection status
+        function updateStatus(connected, message) {
+            const statusEl = document.getElementById('status');
+            const statusText = document.getElementById('statusText');
+            const instructions = document.getElementById('instructions');
+            
+            statusEl.classList.remove('hidden');
+            statusEl.className = 'status ' + (connected ? 'connected' : 'disconnected');
+            statusText.textContent = message;
+            
+            if (connected) {
+                instructions.classList.remove('hidden');
+            }
+        }
+
+        // Listen for messages from content script
+        chrome.runtime.onMessage.addListener((message) => {
+            if (message.type === 'WALLET_EVENT') {
+                switch (message.event) {
+                    case 'CONNECTED':
+                        updateStatus(true, 'Wallet connected successfully');
+                        break;
+                    case 'DISCONNECTED':
+                        updateStatus(false, 'Wallet disconnected');
+                        break;
+                    case 'ACCOUNTS_CHANGED':
+                        updateStatus(true, 'Accounts updated');
+                        break;
+                }
+            }
+        });
+
+        // Initial status
+        updateStatus(false, 'Waiting for wallet connection...');
+    </script>
+</body>
+</html>

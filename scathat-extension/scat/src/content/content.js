@@ -1,184 +1,433 @@
-// Content script for Scathat extension - runs in web pages
-class ScathatContent {
+// Content Script - Wallet Bridge
+class WalletBridge {
   constructor() {
     this.initialized = false;
-    this.contractElements = [];
-    this.liveModals = new Set();
-    this.badgedLinks = new WeakSet();
-    this.urlRegex = /(https?:\/\/[^\s<>'")\]])|(\b[a-z0-9-]+\.eth\b)|(0x[a-fA-F0-9]{40})/gi;
-    this.chatSelectors = [
-      'div[data-testid="message-container"]',
-      'div[role="row"]',
-      'div[aria-label="Message"]',
-      'div[role="textbox"]',
-      'main',
-      'article',
-      'body'
-    ];
     this.walletDetected = false;
     this.walletConnected = false;
-    this.init();
-  }
-
-  init() {
-    this.setupMutationObserver();
-    this.scanChatMessages();
+    this.currentAccount = null;
+    this.currentChainId = null;
+    this.walletEvents = new Map();
+    
     this.setupMessageListeners();
-    this.setupLifecycleGuards();
-    this.detectEthereumWallet();
+    this.detectWallet();
+    this.setupWalletEventListeners();
+    
     this.initialized = true;
-    console.log('Scathat content script initialized');
+    console.log('WalletBridge initialized');
+    
+    // Notify background that content script is ready
+    chrome.runtime.sendMessage({ 
+      type: 'CONTENT_SCRIPT_READY',
+      tabId: this.getCurrentTabId()
+    });
+  }
+  
+  getCurrentTabId() {
+    // Get tab ID from URL parameters or other means
+    const match = window.location.href.match(/tabId=(\d+)/);
+    return match ? parseInt(match[1]) : null;
   }
 
-  setupLifecycleGuards() {
-    const cleanup = () => {
-      try {
-        this.liveModals.forEach((m) => {
-          if (m && m.remove) m.remove();
-        });
-        this.liveModals.clear();
-      } catch {}
-    };
-    window.addEventListener('pagehide', cleanup);
-    window.addEventListener('beforeunload', cleanup);
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') cleanup();
+  setupMessageListeners() {
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      switch (message.type) {
+        case 'PING':
+          sendResponse({ ready: true, initialized: this.initialized });
+          return true;
+          
+        case 'DETECT_WALLET':
+          this.detectWallet().then(result => sendResponse(result));
+          return true;
+          
+        case 'CONNECT_WALLET':
+          this.connectWallet().then(result => sendResponse(result));
+          return true;
+          
+        case 'GET_ACCOUNTS':
+          this.getAccounts().then(result => sendResponse(result));
+          return true;
+          
+        case 'GET_CHAIN_ID':
+          this.getChainId().then(result => sendResponse(result));
+          return true;
+          
+        case 'SIGN_MESSAGE':
+          this.signMessage(message.data).then(result => sendResponse(result));
+          return true;
+          
+        case 'SEND_TRANSACTION':
+          this.sendTransaction(message.data).then(result => sendResponse(result));
+          return true;
+      }
     });
   }
 
-  // Ethereum wallet detection and connection
-  detectEthereumWallet() {
-    // Check for MetaMask or other Ethereum providers
-    if (typeof window.ethereum !== 'undefined') {
-      this.walletDetected = true;
-      console.log('Ethereum wallet detected:', window.ethereum);
+  async detectWallet() {
+    try {
+      // Check if we're on a browser internal page
+      if (window.location.protocol === 'chrome:' || window.location.protocol === 'about:') {
+        return {
+          success: false,
+          error: 'Cannot detect wallet on browser internal pages',
+          detected: false,
+          wallets: {}
+        };
+      }
       
-      // Listen for wallet connection requests from background script
-      chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-        if (message.type === 'CONNECT_WALLET') {
-          this.connectWallet().then(result => {
-            sendResponse({ success: true, connected: result });
-          }).catch(error => {
-            sendResponse({ success: false, error: error.message });
-          });
-          return true; // Keep message channel open for async response
-        }
-        
-        if (message.type === 'GET_WALLET_STATUS') {
-          sendResponse({ 
-            detected: this.walletDetected, 
-            connected: this.walletConnected,
-            accounts: window.ethereum?.selectedAddress ? [window.ethereum.selectedAddress] : []
-          });
-        }
-
-        if (message.type === 'SIGN_MESSAGE') {
-          this.signMessage(message.data).then(signature => {
-            sendResponse({ success: true, signature });
-          }).catch(error => {
-            sendResponse({ success: false, error: error.message });
-          });
-          return true;
-        }
-
-        if (message.type === 'INTERACT_WITH_CONTRACT') {
-          this.interactWithContract(message.data).then(result => {
-            sendResponse({ success: true, result });
-          }).catch(error => {
-            sendResponse({ success: false, error: error.message });
-          });
-          return true;
-        }
-      });
-    } else {
-      console.log('No Ethereum wallet detected');
+      const wallets = this.detectMultipleWallets();
+      this.walletDetected = Object.keys(wallets).length > 0;
+      
+      return {
+        success: true,
+        wallets,
+        detected: this.walletDetected
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        detected: false,
+        wallets: {}
+      };
     }
   }
 
-  async connectWallet() {
-    if (!this.walletDetected) {
-      throw new Error('No Ethereum wallet detected');
+  detectMultipleWallets() {
+    const detectedWallets = {};
+    
+    // Check for standard Ethereum providers
+    if (window.ethereum) {
+      detectedWallets.ethereum = {
+        isMetaMask: window.ethereum.isMetaMask,
+        isRabby: window.ethereum.isRabby,
+        isOKExWallet: window.ethereum.isOKExWallet,
+        isTrust: window.ethereum.isTrust,
+        isCoinbaseWallet: window.ethereum.isCoinbaseWallet,
+        providers: window.ethereum.providers || []
+      };
     }
+    
+    // Check for individual wallet flags
+    if (window.ethereum?.isMetaMask) detectedWallets.metamask = true;
+    if (window.ethereum?.isRabby) detectedWallets.rabby = true;
+    if (window.ethereum?.isOKExWallet) detectedWallets.okx = true;
+    if (window.ethereum?.isTrust) detectedWallets.trust = true;
+    if (window.ethereum?.isCoinbaseWallet) detectedWallets.coinbase = true;
+    
+    // Check for Phantom
+    if (window.phantom?.ethereum) detectedWallets.phantom = true;
+    
+    return detectedWallets;
+  }
 
+  async connectWallet() {
     try {
+      // Security: Validate we're on a regular website
+      if (window.location.protocol === 'chrome:' || window.location.protocol === 'about:') {
+        throw new Error('Cannot connect wallet on browser internal pages');
+      }
+
+      if (!this.walletDetected) {
+        throw new Error('No Ethereum wallet detected');
+      }
+
+      if (!window.ethereum || typeof window.ethereum.request !== 'function') {
+        throw new Error('Ethereum provider not ready');
+      }
+
+      // Security: Only allow specific methods
+      const allowedMethods = ['eth_requestAccounts', 'eth_accounts', 'eth_chainId'];
+      
+      // Validate method is allowed (security measure)
+      const method = 'eth_requestAccounts';
+      if (!allowedMethods.includes(method)) {
+        throw new Error(`Method ${method} not allowed`);
+      }
+      
       // Request account access
       const accounts = await window.ethereum.request({
-        method: 'eth_requestAccounts'
+        method: method
       });
-      
+
       if (accounts && accounts.length > 0) {
         this.walletConnected = true;
-        console.log('Wallet connected successfully:', accounts[0]);
-        return true;
+        this.currentAccount = accounts[0];
+        
+        // Get current chain ID
+        const chainId = await window.ethereum.request({
+          method: 'eth_chainId'
+        });
+        this.currentChainId = chainId;
+
+        return {
+          success: true,
+          account: this.currentAccount,
+          chainId: this.currentChainId,
+          walletConnected: true
+        };
       } else {
-        throw new Error('User denied account access');
+        throw new Error('No accounts returned from wallet');
       }
     } catch (error) {
       console.error('Wallet connection failed:', error);
-      this.walletConnected = false;
+      
+      // Handle specific error codes
+      if (error.code === 4001) {
+        throw new Error('Connection rejected by user');
+      } else if (error.code === -32002) {
+        throw new Error('Wallet connection already pending');
+      }
+      
       throw error;
     }
   }
 
-  // Sign a message with the connected wallet
-  async signMessage(message) {
-    if (!this.walletConnected) {
-      throw new Error('Wallet not connected');
-    }
-
+  async getAccounts() {
     try {
-      // Use personal_sign for better wallet compatibility
-      const signature = await window.ethereum.request({
+      if (!this.walletConnected) {
+        throw new Error('Wallet not connected');
+      }
+
+      const accounts = await window.ethereum.request({
+        method: 'eth_accounts'
+      });
+
+      return {
+        success: true,
+        accounts: accounts || []
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  async getChainId() {
+    try {
+      if (!this.walletConnected) {
+        throw new Error('Wallet not connected');
+      }
+
+      const chainId = await window.ethereum.request({
+        method: 'eth_chainId'
+      });
+
+      return {
+        success: true,
+        chainId: chainId
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  async signMessage({ message, account }) {
+    try {
+      // Security: Validate we're on a regular website
+      if (window.location.protocol === 'chrome:' || window.location.protocol === 'about:') {
+        throw new Error('Cannot sign messages on browser internal pages');
+      }
+
+      if (!this.walletConnected) {
+        throw new Error('Wallet not connected');
+      }
+
+      // Security: Validate message parameters
+      if (typeof message !== 'string' || message.length > 10000) {
+        throw new Error('Invalid message format');
+      }
+
+      const result = await window.ethereum.request({
         method: 'personal_sign',
-        params: [message, await this.getCurrentAccount()]
+        params: [message, account]
       });
-      
-      console.log('Message signed successfully:', signature);
-      return signature;
+
+      return {
+        success: true,
+        signature: result
+      };
     } catch (error) {
-      console.error('Message signing failed:', error);
-      throw new Error('User denied message signature');
+      if (error.code === 4001) {
+        throw new Error('Signature rejected by user');
+      }
+      throw error;
     }
   }
 
-  // Interact with smart contract (requires user signature)
-  async interactWithContract(transactionData) {
-    if (!this.walletConnected) {
-      throw new Error('Wallet not connected');
-    }
-
+  async sendTransaction(transaction) {
     try {
-      // Send transaction to contract (this will trigger wallet signature prompt)
-      const txHash = await window.ethereum.request({
-        method: 'eth_sendTransaction',
-        params: [transactionData]
-      });
+      // Security: Validate we're on a regular website
+      if (window.location.protocol === 'chrome:' || window.location.protocol === 'about:') {
+        throw new Error('Cannot send transactions on browser internal pages');
+      }
+
+      if (!this.walletConnected) {
+        throw new Error('Wallet not connected');
+      }
+
+      // Security: Validate transaction parameters
+      if (!transaction || typeof transaction !== 'object') {
+        throw new Error('Invalid transaction object');
+      }
+
+      // Security: Basic transaction validation
+      const allowedKeys = ['from', 'to', 'value', 'data', 'gas', 'gasPrice', 'chainId'];
+      const transactionKeys = Object.keys(transaction);
+      if (transactionKeys.some(key => !allowedKeys.includes(key))) {
+        throw new Error('Transaction contains invalid parameters');
+      }
+
+      // Security: Validate Ethereum addresses
+      if (transaction.from && !this.isValidEthereumAddress(transaction.from)) {
+        throw new Error('Invalid from address');
+      }
       
-      console.log('Contract interaction successful:', txHash);
-      return txHash;
+      if (transaction.to && !this.isValidEthereumAddress(transaction.to)) {
+        throw new Error('Invalid to address');
+      }
+
+      // Security: Validate value format
+      if (transaction.value && !/^0x[a-fA-F0-9]+$/.test(transaction.value)) {
+        throw new Error('Invalid value format');
+      }
+
+      // Security: Validate gas limits
+      if (transaction.gas) {
+        const gasLimit = parseInt(transaction.gas, 16);
+        if (gasLimit > 30000000) { // 30 million gas limit
+          throw new Error('Gas limit too high');
+        }
+      }
+
+      const result = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [transaction]
+      });
+
+      return {
+        success: true,
+        transactionHash: result
+      };
     } catch (error) {
-      console.error('Contract interaction failed:', error);
-      throw new Error('User denied transaction signature');
+      if (error.code === 4001) {
+        throw new Error('Transaction rejected by user');
+      }
+      throw error;
     }
   }
 
-  // Get current account address
-  async getCurrentAccount() {
-    const accounts = await window.ethereum.request({
-      method: 'eth_accounts'
-    });
-    return accounts[0];
+  setupWalletEventListeners() {
+    if (window.ethereum) {
+      // Security: Only setup listeners on regular websites
+      if (window.location.protocol === 'chrome:' || window.location.protocol === 'about:') {
+        console.warn('Skipping wallet event listeners on internal page');
+        return;
+      }
+
+      // Handle account changes
+      window.ethereum.on('accountsChanged', (accounts) => {
+        this.handleAccountsChanged(accounts);
+      });
+
+      // Handle chain changes
+      window.ethereum.on('chainChanged', (chainId) => {
+        this.handleChainChanged(chainId);
+      });
+
+      // Handle disconnect
+      window.ethereum.on('disconnect', (error) => {
+        this.handleDisconnect(error);
+      });
+      
+      // Handle connection events
+      window.ethereum.on('connect', (connectionInfo) => {
+        this.handleConnect(connectionInfo);
+      });
+    }
+  }
+  
+  handleConnect(connectionInfo) {
+    this.walletConnected = true;
+    this.notifyBackground('CONNECTED', { connectionInfo });
   }
 
-  // ... (script content truncated for brevity; full content mirrors source in workspace)
+  handleAccountsChanged(accounts) {
+    if (accounts.length === 0) {
+      // Wallet disconnected
+      this.walletConnected = false;
+      this.currentAccount = null;
+      this.notifyBackground('ACCOUNTS_CHANGED', { accounts: [] });
+    } else {
+      // Account changed
+      this.currentAccount = accounts[0];
+      this.notifyBackground('ACCOUNTS_CHANGED', { accounts });
+    }
+  }
+
+  handleChainChanged(chainId) {
+    this.currentChainId = chainId;
+    this.notifyBackground('CHAIN_CHANGED', { chainId });
+  }
+
+  handleDisconnect(error) {
+    this.walletConnected = false;
+    this.currentAccount = null;
+    this.currentChainId = null;
+    this.notifyBackground('DISCONNECTED', { error: error?.message });
+  }
+
+  notifyBackground(event, data) {
+    // Security: Validate event types before sending
+    const allowedEvents = ['CONNECTED', 'DISCONNECTED', 'ACCOUNTS_CHANGED', 'CHAIN_CHANGED'];
+    
+    if (!allowedEvents.includes(event)) {
+      console.warn('Attempted to send unauthorized event:', event);
+      return;
+    }
+    
+    // Security: Sanitize data before sending
+    const sanitizedData = this.sanitizeWalletData(data);
+    
+    chrome.runtime.sendMessage({
+      type: 'WALLET_EVENT',
+      event,
+      data: sanitizedData
+    });
+  }
+  
+  sanitizeWalletData(data) {
+    // Security: Prevent sending sensitive information
+    const sanitized = { ...data };
+    
+    // Remove any private keys or sensitive data
+    if (sanitized.privateKey) delete sanitized.privateKey;
+    if (sanitized.seedPhrase) delete sanitized.seedPhrase;
+    if (sanitized.mnemonic) delete sanitized.mnemonic;
+    
+    // Truncate large data
+    if (sanitized.message && sanitized.message.length > 1000) {
+      sanitized.message = sanitized.message.substring(0, 1000) + '...';
+    }
+    
+    return sanitized;
+  }
+  
+  // Security: Validate Ethereum addresses
+  isValidEthereumAddress(address) {
+    return /^0x[a-fA-F0-9]{40}$/.test(address);
+  }
+  
+  // Security: Validate chain IDs
+  isValidChainId(chainId) {
+    const validChainIds = new Set(['0x1', '0x5', '0xaa36a7', '0x89', '0x13881', '0x38', '0x61']);
+    return validChainIds.has(chainId);
+  }
 }
 
-// Instantiate when loaded
-(() => {
-  try {
-    new ScathatContent();
-  } catch (e) {
-    console.warn('ScathatContent failed to initialize:', e);
-  }
-})();
-
+// Initialize the wallet bridge when content script loads
+window.scathatWalletBridge = new WalletBridge();

@@ -16,8 +16,7 @@
       "https://scathat.vercel.app/*",
       "http://localhost:3000/*",
       "http://localhost/*"
-    ],
-    "ids": ["*"]
+    ]
   },
   "host_permissions": [
     "*://*/*",

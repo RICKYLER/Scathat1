@@ -1,0 +1,16 @@
+{
+  "version": 3,
+  "builds": [
+    {
+      "src": "scathat/package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "scathat/$1"
+    }
+  ],
+  "outputDirectory": "scathat/.next"
+}

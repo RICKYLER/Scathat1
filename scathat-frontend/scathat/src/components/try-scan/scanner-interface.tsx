@@ -245,66 +245,42 @@ export default function ScannerInterface() {
     return Math.min(100, Math.round(score))
   }
 
-  const generateMockResult = (): ScanResult => {
-    const resultType: Severity = ["safe", "warning", "dangerous"][Math.floor(Math.random() * 3)] as Severity
-    const linesAnalyzed = 5000 + Math.floor(Math.random() * 15000)
-    const scanTime = 3.5 + Math.random() * 2.5
-
-    let issues: ScanResult["issues"] = []
-
-    if (resultType === "safe") {
-      // Safe contract might have minor warnings
-      issues = Math.random() > 0.5 ? [] : [vulnerabilitiesDb.noAudit]
-    } else if (resultType === "warning") {
-      // Medium risk: 2-4 warning issues
-      const warningVulns = ["centralization", "unverified", "newDeployment", "noAudit", "lowLiquidity", "gasMisuse"]
-      const count = 2 + Math.floor(Math.random() * 3)
-      const selected = warningVulns.sort(() => Math.random() - 0.5).slice(0, count)
-      issues = selected.map((key) => vulnerabilitiesDb[key])
-    } else {
-      // Dangerous: 2-5 critical issues + warnings
-      const dangerousVulns = [
-        "honeypot",
-        "hiddenFees",
-        "ownerDrain",
-        "reentrancy",
-        "integerOverflow",
-        "accessControl",
-        "uncheckedCall",
-        "delegatecall",
-      ]
-      const warningVulns = ["centralization", "unverified", "newDeployment"]
-
-      const dangerousCount = 2 + Math.floor(Math.random() * 3)
-      const warningCount = Math.random() > 0.5 ? 1 + Math.floor(Math.random() * 2) : 0
-
-      const selectedDangerous = dangerousVulns.sort(() => Math.random() - 0.5).slice(0, dangerousCount)
-      const selectedWarning = warningVulns.sort(() => Math.random() - 0.5).slice(0, warningCount)
-
-      issues = [
-        ...selectedDangerous.map((key) => vulnerabilitiesDb[key]),
-        ...selectedWarning.map((key) => vulnerabilitiesDb[key]),
-      ]
-    }
-
-    const riskScore = calculateRiskScore(issues)
-
-    const recommendations: Record<Severity, string> = {
-      safe: "Contract has passed security checks. Safe to interact with.",
-      warning: "Proceed with caution. Review identified issues before large transactions.",
-      dangerous: "DO NOT INTERACT. High probability of scam, rug pull, or critical vulnerability.",
-    }
-
+  // Map backend API response to frontend format
+  const mapBackendToFrontendResult = (backendResult: any, contractAddress: string): ScanResult => {
+    // Convert risk score from backend to frontend format (0.0-1.0 → 0-100)
+    const riskScore = backendResult.risk_score ? Math.round(parseFloat(backendResult.risk_score) * 100) : 50;
+    
+    // Map risk level based on actual backend assessment
+    let status: Severity = "safe";
+    if (backendResult.risk_level === "Dangerous" || riskScore >= 70) status = "dangerous";
+    else if (backendResult.risk_level === "Warning" || riskScore >= 30) status = "warning";
+    
+    // Convert real vulnerabilities from backend
+    const issues: Issue[] = backendResult.vulnerabilities?.map((vuln: any) => ({
+      text: vuln.type || vuln.description || "Security vulnerability detected",
+      severity: (vuln.severity?.toLowerCase() || "warning") as Severity,
+      category: vuln.category || "security",
+      description: vuln.description || "AI-detected security issue",
+      impact: vuln.impact || "Requires investigation",
+      likelihood: vuln.likelihood || "Needs assessment"
+    })) || [];
+    
+    // Use backend-provided explanation or generate based on risk
+    const recommendation = backendResult.explanation || 
+      (status === "safe" ? "Contract passed AI security analysis" :
+       status === "warning" ? "Review recommended before interaction" :
+       "High risk detected - avoid interaction");
+    
     return {
-      status: resultType,
+      status,
       riskScore,
       issues,
-      recommendation: recommendations[resultType],
-      contractName: resultType === "safe" ? "Verified Token" : "Analyzed Contract",
-      scanTime: Number.parseFloat(scanTime.toFixed(2)),
-      linesAnalyzed,
-    }
-  }
+      recommendation,
+      contractName: backendResult.contract_name || contractAddress.slice(0, 8) + "..." + contractAddress.slice(-6),
+      scanTime: backendResult.processing_time_ms ? backendResult.processing_time_ms / 1000 : 3.2,
+      linesAnalyzed: backendResult.lines_analyzed || 0
+    };
+  };
 
   const handleScan = async () => {
     if (!contractAddress.trim()) return
@@ -314,46 +290,81 @@ export default function ScannerInterface() {
     setLoadedIssuesCount(0)
     setScanProgress(0)
 
-    // Stage 1: Decompile (1.5s)
-    setScanStage("decompile")
-    for (let i = 0; i <= 25; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 60))
-      setScanProgress(i)
-    }
+    try {
+      // Stage 1: Decompile
+      setScanStage("decompile")
+      setScanProgress(25)
 
-    // Stage 2: Analysis (2s)
-    setScanStage("analysis")
-    for (let i = 25; i <= 50; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 80))
-      setScanProgress(i)
-    }
+      // Stage 2: Analysis
+      setScanStage("analysis")
+      setScanProgress(50)
 
-    // Stage 3: Audit (1.5s)
-    setScanStage("audit")
-    for (let i = 50; i <= 75; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 60))
-      setScanProgress(i)
-    }
+      // Stage 3: Audit - Connect to real backend API
+      setScanStage("audit")
+      setScanProgress(75)
 
-    // Stage 4: Risk Scoring (1s)
-    setScanStage("scoring")
-    for (let i = 75; i <= 95; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 50))
-      setScanProgress(i)
-    }
+      // Make API call to backend for real analysis
+      const response = await fetch('http://localhost:54634/scan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contract_address: contractAddress.trim(),
+          chain_id: 84532 // Default to Base chain
+        })
+      })
 
-    // Stage 5: Complete & Show Results
-    setScanStage("complete")
-    setScanProgress(100)
-    const mockResult = generateMockResult()
-    setResult(mockResult)
-    setScanStatus(mockResult.status)
-
-    if (mockResult.issues.length > 0) {
-      for (let i = 0; i < mockResult.issues.length; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 300))
-        setLoadedIssuesCount((prev) => prev + 1)
+      if (!response.ok) {
+        throw new Error(`Analysis failed: ${response.statusText}`)
       }
+
+      const scanResult = await response.json()
+
+      // Stage 4: Risk Scoring
+      setScanStage("scoring")
+      setScanProgress(95)
+
+      // Convert backend response to frontend format
+      const realResult = mapBackendToFrontendResult(scanResult, contractAddress)
+
+      // Stage 5: Complete
+      setScanStage("complete")
+      setScanProgress(100)
+      setResult(realResult)
+      setScanStatus(realResult.status)
+
+      // Load issues with slight delay for UX
+      if (realResult.issues.length > 0) {
+        for (let i = 0; i < realResult.issues.length; i++) {
+          await new Promise((resolve) => setTimeout(resolve, 150))
+          setLoadedIssuesCount((prev) => prev + 1)
+        }
+      }
+    } catch (error) {
+      console.error('Scan failed:', error)
+      
+      // Show error state instead of mock results
+      setScanStage("complete")
+      setScanProgress(100)
+      setScanStatus("warning")
+      
+      setResult({
+        status: "warning",
+        riskScore: 50,
+        issues: [{
+          text: "Backend connection failed",
+          severity: "warning",
+          category: "system",
+          description: "Unable to connect to AI analysis service",
+          impact: "Limited analysis available",
+          likelihood: "Service may be offline"
+        }],
+        recommendation: "Please check backend service and try again",
+        contractName: contractAddress.slice(0, 8) + "..." + contractAddress.slice(-6),
+        scanTime: 0,
+        linesAnalyzed: 0
+      });
     }
   }
 
@@ -837,6 +848,10 @@ export default function ScannerInterface() {
                       {result.riskScore}
                     </span>
                     <span className="text-muted-foreground text-xs mb-1">/100</span>
+                  </div>
+                  <div className="mt-1 text-[10px] text-muted-foreground">
+                    {result.riskScore >= 70 ? 'Dangerous' : 
+                     result.riskScore >= 30 ? 'Warning' : 'Safe'}
                   </div>
                 </div>
 

@@ -70,7 +70,7 @@ app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])  # In production,
 try:
     # Explorer Service Configuration (for Base Sepolia)
     explorer_config = ExplorerConfig(
-        api_key=os.getenv("BASESCAN_API_KEY", "demo_key"),
+        api_key=os.getenv("BASESCAN_API_KEY_SEPOLIA", "demo_key"),
         base_url="https://api-sepolia.basescan.org/api",
         chain_id=84532,
         chain_name="Base Sepolia"

@@ -62,6 +62,9 @@ class ScathatBackground {
         case 'CONNECT_WALLET':
           this.handleWalletConnect(sender.tab?.id).then((res) => sendResponse(res));
           return true;
+        case 'SWITCH_TO_BASE_SEPOLIA':
+          this.handleSwitchToBaseSepolia(sender.tab?.id).then((res) => sendResponse(res));
+          return true;
         case 'GET_ACCOUNTS':
           this.handleGetAccounts(sender.tab?.id).then((res) => sendResponse(res));
           return true;
@@ -707,6 +710,46 @@ class ScathatBackground {
       });
     } catch (error) {
       // Popup might not be listening, which is fine
+    }
+  }
+
+  async handleSwitchToBaseSepolia(tabId) {
+    try {
+      const targetTabId = await this.getTargetTabId(tabId);
+      
+      // Check if we're on a browser internal page
+      const tab = await chrome.tabs.get(targetTabId);
+      if (tab.url?.startsWith('chrome://') || tab.url?.startsWith('about:')) {
+        return { 
+          success: false, 
+          error: 'Cannot switch network on browser internal pages. Please navigate to a regular website.'
+        };
+      }
+      
+      await this.ensureContentScriptReady(targetTabId);
+      
+      // Send message to content script for network switching
+      const response = await chrome.tabs.sendMessage(targetTabId, { 
+        type: 'SWITCH_TO_BASE_SEPOLIA' 
+      });
+      
+      return response;
+      
+    } catch (error) {
+      console.error('Base Sepolia switch error:', error);
+      
+      // Check if this is a content script not available error
+      if (error.message.includes('Receiving end does not exist')) {
+        return { 
+          success: false, 
+          error: 'Cannot switch network on this page. Please navigate to a regular website.'
+        };
+      }
+      
+      return { 
+        success: false, 
+        error: error.message || 'Failed to switch to Base Sepolia'
+      };
     }
   }
 }

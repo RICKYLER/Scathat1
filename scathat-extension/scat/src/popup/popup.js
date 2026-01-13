@@ -387,6 +387,37 @@ class ScathatPopup {
         this.updateWalletUI();
     }
 
+    async switchToBaseSepolia() {
+        try {
+            this.showLoading('Switching to Base Sepolia network...');
+            
+            const response = await chrome.runtime.sendMessage({ 
+                type: 'SWITCH_TO_BASE_SEPOLIA' 
+            });
+            
+            if (response.success) {
+                if (response.alreadyOnNetwork) {
+                    this.showInfo('Already connected to Base Sepolia network');
+                } else if (response.networkAdded) {
+                    this.showInfo('Base Sepolia network added successfully');
+                } else {
+                    this.showInfo('Switched to Base Sepolia network successfully');
+                }
+                
+                // Update wallet info to reflect the new network
+                await this.updateWalletInfo();
+                this.addActivity('Switched to Base Sepolia network', 'network');
+                
+            } else {
+                this.showError('Failed to switch to Base Sepolia: ' + response.error);
+            }
+            
+        } catch (error) {
+            console.error('Base Sepolia switch error:', error);
+            this.showError('Failed to switch to Base Sepolia: ' + error.message);
+        }
+    }
+
     updateWalletUI() {
         const walletStatus = document.getElementById('walletStatus');
         const walletDot = walletStatus.querySelector('.wallet-dot');

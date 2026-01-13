@@ -53,6 +53,47 @@ export default function ScannerInterface() {
   const [walletConnected, setWalletConnected] = useState(false)
   const [walletAccounts, setWalletAccounts] = useState<string[]>([])
   const [walletChainId, setWalletChainId] = useState<string>("")
+  const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false)
+  
+  // Network configuration
+  const networks = {
+    '0x1': {
+      name: 'Ethereum Mainnet',
+      symbol: 'ETH',
+      explorer: 'https://etherscan.io',
+      rpc: 'https://mainnet.infura.io/v3/'
+    },
+    '0x89': {
+      name: 'Polygon Network',
+      symbol: 'MATIC',
+      explorer: 'https://polygonscan.com',
+      rpc: 'https://polygon-rpc.com'
+    },
+    '0x14a34': {
+      name: 'Base Network',
+      symbol: 'ETH',
+      explorer: 'https://basescan.org',
+      rpc: 'https://mainnet.base.org'
+    },
+    '0xa': {
+      name: 'Optimism Network',
+      symbol: 'ETH',
+      explorer: 'https://optimistic.etherscan.io',
+      rpc: 'https://mainnet.optimism.io'
+    },
+    '0xa4b1': {
+      name: 'Arbitrum Network',
+      symbol: 'ETH',
+      explorer: 'https://arbiscan.io',
+      rpc: 'https://arb1.arbitrum.io/rpc'
+    },
+    '0x38': {
+      name: 'Core Network',
+      symbol: 'CORE',
+      explorer: 'https://scan.coredao.org',
+      rpc: 'https://rpc.coredao.org'
+    }
+  }
 
   const vulnerabilitiesDb: Record<string, Issue> = {
     reentrancy: {
@@ -428,6 +469,67 @@ export default function ScannerInterface() {
     }
   };
 
+  // Network switching function
+  const switchNetwork = async (chainId: string) => {
+    try {
+      setIsSwitchingNetwork(true);
+      
+      if (typeof window.ethereum === 'undefined') {
+        throw new Error('No Ethereum wallet found');
+      }
+
+      const network = networks[chainId as keyof typeof networks];
+      if (!network) {
+        throw new Error('Unsupported network');
+      }
+
+      try {
+        // Try to switch network
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId }]
+        });
+      } catch (switchError: any) {
+        // If network is not added (error code 4902), add it
+        if (switchError.code === 4902) {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId,
+              chainName: network.name,
+              nativeCurrency: {
+                name: network.symbol,
+                symbol: network.symbol,
+                decimals: 18
+              },
+              rpcUrls: [network.rpc],
+              blockExplorerUrls: [network.explorer]
+            }]
+          });
+        } else {
+          throw switchError;
+        }
+      }
+
+      // Update chain ID after successful switch
+      setWalletChainId(chainId);
+      
+      // Send update to extension
+      await sendToScathatExtension({
+        type: 'WALLET_STATE_UPDATE',
+        walletConnected: true,
+        accounts: walletAccounts,
+        chainId: chainId
+      });
+
+    } catch (error: any) {
+      console.error('Failed to switch network:', error);
+      alert(`Failed to switch network: ${error.message}`);
+    } finally {
+      setIsSwitchingNetwork(false);
+    }
+  };
+
   // Wallet connection functions
   const connectWallet = async () => {
     try {
@@ -560,6 +662,33 @@ export default function ScannerInterface() {
               {walletConnected ? 'Disconnect' : 'Connect Wallet'}
             </button>
           </div>
+
+          {/* Network Selector */}
+          {walletConnected && (
+            <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
+                  Network
+                </label>
+                <select
+                  value={walletChainId}
+                  onChange={(e) => switchNetwork(e.target.value)}
+                  disabled={isSwitchingNetwork}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-md text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <option value="0x1">Ethereum Mainnet</option>
+                  <option value="0x89">Polygon Network</option>
+                  <option value="0x14a34">Base Network</option>
+                  <option value="0xa">Optimism Network</option>
+                  <option value="0xa4b1">Arbitrum Network</option>
+                  <option value="0x38">Core Network</option>
+                </select>
+              </div>
+              {isSwitchingNetwork && (
+                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+              )}
+            </div>
+          )}
         </div>
 
         {/* Main Scanner Section */}

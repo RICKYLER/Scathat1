@@ -51,6 +51,10 @@ class WalletBridge {
           this.getChainId().then(result => sendResponse(result));
           return true;
           
+        case 'SWITCH_TO_BASE_SEPOLIA':
+          this.switchToBaseSepolia().then(result => sendResponse(result));
+          return true;
+          
         case 'SIGN_MESSAGE':
           this.signMessage(message.data).then(result => sendResponse(result));
           return true;
@@ -158,6 +162,66 @@ class WalletBridge {
           method: 'eth_chainId'
         });
         this.currentChainId = chainId;
+
+        // FORCE switch to Base Sepolia - don't continue if not on correct network
+        if (chainId !== '0x14a34') {
+           try {
+             // Directly call the Ethereum provider to switch networks
+             await window.ethereum.request({
+               method: 'wallet_switchEthereumChain',
+               params: [{ chainId: '0x14a34' }]
+             });
+             
+             // Update chain ID after successful switch
+             this.currentChainId = '0x14a34';
+             // Get fresh accounts after network switch
+             const freshAccounts = await window.ethereum.request({
+               method: 'eth_accounts'
+             });
+             if (freshAccounts && freshAccounts.length > 0) {
+               this.currentAccount = freshAccounts[0];
+             }
+             
+           } catch (switchError) {
+             console.error('Failed to switch to Base Sepolia:', switchError);
+             
+             // If chain is not added to wallet, add it
+             if (switchError.code === 4902) {
+               try {
+                 await window.ethereum.request({
+                   method: 'wallet_addEthereumChain',
+                   params: [{
+                     chainId: '0x14a34',
+                     chainName: 'Base Sepolia',
+                     nativeCurrency: {
+                       name: 'Ether',
+                       symbol: 'ETH',
+                       decimals: 18
+                     },
+                     rpcUrls: ['https://sepolia.base.org'],
+                     blockExplorerUrls: ['https://sepolia.basescan.org']
+                   }]
+                 });
+                 
+                 // After adding, try switching again
+                 await window.ethereum.request({
+                   method: 'wallet_switchEthereumChain',
+                   params: [{ chainId: '0x14a34' }]
+                 });
+                 
+                 // Update chain ID after successful switch
+                 this.currentChainId = '0x14a34';
+                 
+               } catch (addError) {
+                 console.error('Failed to add Base Sepolia network:', addError);
+                 throw new Error(`Failed to add Base Sepolia network: ${addError.message}`);
+               }
+             } else {
+               // Re-throw to prevent connection on wrong network
+               throw new Error(`Wallet connection aborted: Must be on Base Sepolia network. Failed to switch: ${switchError.message}`);
+             }
+           }
+         }
 
         return {
           success: true,
@@ -424,8 +488,89 @@ class WalletBridge {
   
   // Security: Validate chain IDs
   isValidChainId(chainId) {
-    const validChainIds = new Set(['0x1', '0x5', '0xaa36a7', '0x89', '0x13881', '0x38', '0x61']);
+    const validChainIds = new Set(['0x1', '0x5', '0xaa36a7', '0x89', '0x13881', '0x38', '0x61', '0x14a34']);
     return validChainIds.has(chainId);
+  }
+  
+  // Switch to Base Sepolia network
+  async switchToBaseSepolia() {
+    try {
+      if (!this.walletConnected) {
+        throw new Error('Wallet not connected');
+      }
+
+      const baseSepoliaChainId = '0x14a34';
+      
+      // Check if already on Base Sepolia
+      const currentChainId = await window.ethereum.request({
+        method: 'eth_chainId'
+      });
+      
+      if (currentChainId === baseSepoliaChainId) {
+        // Already on Base Sepolia, update internal state
+        this.currentChainId = baseSepoliaChainId;
+        return { success: true, alreadyOnNetwork: true };
+      }
+
+      // Request network switch
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: baseSepoliaChainId }]
+      });
+
+      // Update internal state to reflect the new network
+      this.currentChainId = baseSepoliaChainId;
+      
+      // Get fresh accounts after network switch
+      const accounts = await window.ethereum.request({
+        method: 'eth_requestAccounts'
+      });
+      
+      if (accounts && accounts.length > 0) {
+        this.currentAccount = accounts[0];
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to switch to Base Sepolia:', error);
+      
+      // If chain is not added to wallet, add it and try again
+      if (error.code === 4902) {
+        const addResult = await this.addBaseSepoliaNetwork();
+        if (addResult.success) {
+          // Network added, now switch to it
+          return await this.switchToBaseSepolia();
+        }
+        throw new Error('Failed to add Base Sepolia network');
+      }
+      
+      throw error;
+    }
+  }
+  
+  // Add Base Sepolia network to wallet
+  async addBaseSepoliaNetwork() {
+    try {
+      await window.ethereum.request({
+        method: 'wallet_addEthereumChain',
+        params: [{
+          chainId: '0x14a34',
+          chainName: 'Base Sepolia',
+          nativeCurrency: {
+            name: 'Ether',
+            symbol: 'ETH',
+            decimals: 18
+          },
+          rpcUrls: ['https://sepolia.base.org'],
+          blockExplorerUrls: ['https://sepolia.basescan.org']
+        }]
+      });
+      
+      return { success: true, networkAdded: true };
+    } catch (error) {
+      console.error('Failed to add Base Sepolia network:', error);
+      throw error;
+    }
   }
 }
 

@@ -11,7 +11,9 @@ const navLinks = [
   { label: "Contact", href: "#contact-us" },
 ];
 
-const Header = () => {
+type HeaderProps = { minimal?: boolean }
+
+const Header = ({ minimal = false }: HeaderProps) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [logoSrc, setLogoSrc] = useState<string>("/logo1.jpg");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -37,34 +39,38 @@ const Header = () => {
             <span className="text-xl font-bold text-foreground">Scathat</span>
           </a>
 
-          <nav className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-              >
-                {link.label}
-              </a>
-            ))}
-          </nav>
+          {!minimal && (
+            <nav className="hidden md:flex items-center gap-8">
+              {navLinks.map((link) => (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                >
+                  {link.label}
+                </a>
+              ))}
+            </nav>
+          )}
 
           <div className="hidden md:flex items-center gap-3">
             <a href="/" className="inline-block">
               <Button size="sm" variant="secondary">Back Home</Button>
             </a>
-            <Button size="sm" className="glow-primary">Get Started</Button>
+            {!minimal && <Button size="sm" className="glow-primary">Get Started</Button>}
           </div>
 
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 text-foreground"
-          >
-            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          {!minimal && (
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 text-foreground"
+            >
+              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          )}
         </div>
 
-        {isMobileMenuOpen && (
+        {!minimal && isMobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-border/50">
             <nav className="flex flex-col gap-4">
               {navLinks.map((link) => (
@@ -81,7 +87,7 @@ const Header = () => {
                 <a href="/" className="block mb-3">
                   <Button size="sm" className="w-full" variant="secondary">Back Home</Button>
                 </a>
-                <Button size="sm" className="w-full glow-primary">Get Started</Button>
+                {!minimal && <Button size="sm" className="w-full glow-primary">Get Started</Button>}
               </div>
             </nav>
           </div>

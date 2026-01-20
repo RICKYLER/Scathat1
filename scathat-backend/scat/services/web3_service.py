@@ -12,6 +12,31 @@ from typing import Dict, Any, Optional, List, Tuple
 from dataclasses import dataclass
 import json
 
+
+class Web3ServiceError(Exception):
+    """Base exception for Web3 service errors"""
+    pass
+
+
+class InsufficientFundsError(Web3ServiceError):
+    """Exception raised when account has insufficient funds"""
+    pass
+
+
+class ContractExecutionError(Web3ServiceError):
+    """Exception raised when contract execution reverts"""
+    pass
+
+
+class GasEstimationError(Web3ServiceError):
+    """Exception raised when gas estimation fails"""
+    pass
+
+
+class ContractVerificationError(Web3ServiceError):
+    """Exception raised when contract verification fails"""
+    pass
+
 logger = logging.getLogger(__name__)
 
 @dataclass
@@ -211,21 +236,72 @@ class Web3Service:
             logger.error(f"Error getting balance for {address}: {str(e)}")
             return None
     
-    def estimate_gas(self, transaction: Dict[str, Any]) -> Optional[int]:
+    def estimate_gas(self, transaction: Dict[str, Any], retries: int = 3, timeout: int = 30) -> Optional[int]:
         """
-        Estimate gas required for a transaction.
+        Estimate gas required for a transaction with comprehensive error handling.
         
         Args:
             transaction (Dict[str, Any]): Transaction parameters
+            retries (int): Number of retry attempts
+            timeout (int): Timeout in seconds
             
         Returns:
-            Optional[int]: Estimated gas limit
+            Optional[int]: Estimated gas limit with safety margin
         """
-        try:
-            return self.w3.eth.estimate_gas(transaction)
-        except Exception as e:
-            logger.error(f"Error estimating gas: {str(e)}")
-            return None
+        import time
+        
+        for attempt in range(retries):
+            try:
+                # Basic gas estimation
+                base_gas = self.w3.eth.estimate_gas(transaction)
+                
+                # Add safety margin (20% for complex contracts)
+                safety_margin = int(base_gas * 1.2)
+                
+                # Cap at block gas limit with buffer
+                block_gas_limit = self.w3.eth.get_block('latest')['gasLimit']
+                max_safe_gas = int(block_gas_limit * 0.9)  # 90% of block limit
+                
+                estimated_gas = min(safety_margin, max_safe_gas)
+                
+                logger.info(f"Gas estimation successful: {base_gas} base + safety = {estimated_gas}")
+                return estimated_gas
+                
+            except ValueError as e:
+                # Handle specific gas estimation errors
+                error_msg = str(e)
+                
+                if "insufficient funds" in error_msg.lower():
+                    logger.error(f"Gas estimation failed: Insufficient funds for transaction")
+                    raise InsufficientFundsError(f"Insufficient funds: {error_msg}")
+                
+                elif "execution reverted" in error_msg.lower():
+                    logger.warning(f"Gas estimation failed: Execution reverted, retrying ({attempt + 1}/{retries})")
+                    if attempt < retries - 1:
+                        time.sleep(1)
+                        continue
+                    raise ContractExecutionError(f"Contract execution reverted: {error_msg}")
+                
+                elif "intrinsic gas too low" in error_msg.lower():
+                    logger.warning(f"Gas estimation failed: Intrinsic gas too low, adjusting")
+                    # Provide minimum safe gas
+                    return 21000  # Minimum transaction gas
+                
+                else:
+                    logger.error(f"Gas estimation failed with unknown error: {error_msg}")
+                    if attempt < retries - 1:
+                        time.sleep(1)
+                        continue
+                    raise GasEstimationError(f"Gas estimation failed: {error_msg}")
+                    
+            except Exception as e:
+                logger.error(f"Gas estimation failed with unexpected error (attempt {attempt + 1}/{retries}): {str(e)}")
+                if attempt < retries - 1:
+                    time.sleep(1)
+                    continue
+                raise GasEstimationError(f"Unexpected gas estimation error: {str(e)}")
+        
+        return None
     
     def get_chain_info(self) -> Dict[str, Any]:
         """
@@ -245,9 +321,10 @@ class Web3Service:
 
     def write_score_to_chain(self, contract_address: str, risk_score: str, risk_level: int,
                            private_key: str, registry_address: str, 
-                           registry_abi: List[Dict[str, Any]]) -> Optional[str]:
+                           registry_abi: List[Dict[str, Any]], 
+                           max_retries: int = 3, gas_limit_buffer: float = 1.2) -> Dict[str, Any]:
         """
-        Write risk score to the ResultsRegistry contract on-chain.
+        Write risk score to the ResultsRegistry contract on-chain with comprehensive error handling.
         
         Args:
             contract_address (str): The contract address to score
@@ -256,41 +333,127 @@ class Web3Service:
             private_key (str): Private key for signing transaction
             registry_address (str): ResultsRegistry contract address
             registry_abi (List[Dict[str, Any]]): ResultsRegistry contract ABI
+            max_retries (int): Maximum number of retry attempts
+            gas_limit_buffer (float): Gas limit buffer multiplier (1.2 = 20% buffer)
             
         Returns:
-            Optional[str]: Transaction hash if successful
+            Dict with transaction details and status
         """
-        try:
-            # Get contract instance
-            registry_contract = self.get_contract_instance(registry_address, registry_abi)
-            if not registry_contract:
-                logger.error(f"Failed to get ResultsRegistry instance at {registry_address}")
-                return None
-            
-            # Build transaction
-            transaction = registry_contract.functions.writeRiskScore(
-                self.w3.to_checksum_address(contract_address),
-                risk_score,
-                risk_level
-            ).build_transaction({
-                'from': self.w3.eth.account.from_key(private_key).address,
-                'nonce': self.w3.eth.get_transaction_count(self.w3.eth.account.from_key(private_key).address),
-                'gas': 100000,  # Adjust based on contract requirements
-                'gasPrice': self.w3.eth.gas_price
-            })
-            
-            # Sign transaction
-            signed_txn = self.w3.eth.account.sign_transaction(transaction, private_key)
-            
-            # Send transaction
-            tx_hash = self.w3.eth.send_raw_transaction(signed_txn.rawTransaction)
-            
-            logger.info(f"Risk score written to chain for {contract_address}. Tx hash: {tx_hash.hex()}")
-            return tx_hash.hex()
-            
-        except Exception as e:
-            logger.error(f"Error writing risk score to chain for {contract_address}: {str(e)}")
-            return None
+        import time
+        
+        result = {
+            'success': False,
+            'transaction_hash': None,
+            'error': None,
+            'retries': 0,
+            'gas_used': 0,
+            'gas_price': 0,
+            'total_cost': 0
+        }
+        
+        for attempt in range(max_retries):
+            try:
+                # Get contract instance with retry logic
+                registry_contract = self.get_contract_instance(registry_address, registry_abi)
+                if not registry_contract:
+                    raise ContractVerificationError(f"Failed to get ResultsRegistry instance at {registry_address}")
+                
+                # Get account details
+                account = self.w3.eth.account.from_key(private_key)
+                account_address = account.address
+                
+                # Check balance before proceeding
+                balance = self.w3.eth.get_balance(account_address)
+                if balance == 0:
+                    raise InsufficientFundsError("Account has zero balance")
+                
+                # Build transaction with proper gas estimation
+                transaction_data = registry_contract.functions.writeRiskScore(
+                    self.w3.to_checksum_address(contract_address),
+                    risk_score,
+                    risk_level
+                )
+                
+                # Estimate gas with retries and safety margin
+                gas_estimate = self.estimate_gas({
+                    'from': account_address,
+                    'to': registry_address,
+                    'data': transaction_data._encode_transaction_data()
+                }, retries=2)
+                
+                if not gas_estimate:
+                    raise GasEstimationError("Failed to estimate gas for transaction")
+                
+                # Get current gas price with buffer
+                current_gas_price = self.w3.eth.gas_price
+                gas_price_with_buffer = int(current_gas_price * 1.1)  # 10% buffer
+                
+                # Build transaction with optimized parameters
+                transaction = transaction_data.build_transaction({
+                    'from': account_address,
+                    'nonce': self.w3.eth.get_transaction_count(account_address),
+                    'gas': gas_estimate,
+                    'gasPrice': gas_price_with_buffer,
+                    'chainId': self.config.chain_id
+                })
+                
+                # Check if transaction cost is reasonable compared to balance
+                estimated_cost = gas_estimate * gas_price_with_buffer
+                if estimated_cost > balance:
+                    raise InsufficientFundsError(
+                        f"Insufficient funds: {estimated_cost} wei needed, {balance} wei available"
+                    )
+                
+                # Sign transaction
+                signed_txn = self.w3.eth.account.sign_transaction(transaction, private_key)
+                
+                # Send transaction with timeout
+                tx_hash = self.w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+                
+                # Wait for transaction receipt with timeout
+                receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+                
+                if receipt.status == 0:
+                    raise ContractExecutionError("Transaction reverted")
+                
+                # Update result with success details
+                result.update({
+                    'success': True,
+                    'transaction_hash': tx_hash.hex(),
+                    'gas_used': receipt.gasUsed,
+                    'gas_price': gas_price_with_buffer,
+                    'total_cost': receipt.gasUsed * gas_price_with_buffer,
+                    'block_number': receipt.blockNumber,
+                    'retries': attempt
+                })
+                
+                logger.info(f"Risk score successfully written for {contract_address}. "
+                          f"Tx: {tx_hash.hex()}, Gas used: {receipt.gasUsed}, "
+                          f"Cost: {receipt.gasUsed * gas_price_with_buffer} wei")
+                
+                return result
+                
+            except InsufficientFundsError as e:
+                logger.error(f"Insufficient funds error (attempt {attempt + 1}/{max_retries}): {e}")
+                result['error'] = f"Insufficient funds: {e}"
+                break  # No point retrying without funds
+                
+            except (ContractExecutionError, GasEstimationError) as e:
+                logger.warning(f"Execution error (attempt {attempt + 1}/{max_retries}): {e}")
+                result['error'] = f"Execution error: {e}"
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)  # Exponential backoff
+                    continue
+                
+            except Exception as e:
+                logger.error(f"Unexpected error (attempt {attempt + 1}/{max_retries}): {e}")
+                result['error'] = f"Unexpected error: {e}"
+                if attempt < max_retries - 1:
+                    time.sleep(1)
+                    continue
+        
+        logger.error(f"Failed to write risk score for {contract_address} after {max_retries} attempts")
+        return result
 
     def read_score_from_chain(self, contract_address: str, 
                             registry_address: str, 

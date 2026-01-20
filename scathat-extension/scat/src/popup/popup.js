@@ -355,7 +355,7 @@ class ScathatPopup {
             // Example contract interaction data
             const transactionData = {
                 from: this.walletAccounts[0],
-                to: '0x8dCcDf8Be8B32492896281413B45e075B1f5EDe5', // Contract address
+                to: '0x70f5a33cdB629E3d174e4976341EF7Fe2fA4D4F1', // Contract address
                 value: '0x0', // No value transfer
                 data: '0x12345678' // Example contract call data
             };

@@ -6,7 +6,7 @@ class ContractClient {
         this.provider = null;
         this.signer = null;
         this.contract = null;
-        this.contractAddress = '0x8dCcDf8Be8B32492896281413B45e075B1f5EDe5';
+        this.contractAddress = '0x70f5a33cdB629E3d174e4976341EF7Fe2fA4D4F1';
         this.contractABI = [
             // Contract ABI will be loaded dynamically
         ];
@@ -38,46 +38,41 @@ class ContractClient {
     // Load contract ABI from the smart contract project
     async loadContractABI() {
         try {
-            // In a real implementation, this would fetch the ABI from the artifacts
-            // For now, we'll use a minimal ABI for the required functions
-            this.contractABI = [
-                {
-                    "inputs": [
-                        {"internalType": "address", "name": "_contractAddress", "type": "address"},
-                        {"internalType": "string", "name": "_riskScore", "type": "string"},
-                        {"internalType": "uint8", "name": "_riskLevel", "type": "uint8"}
-                    ],
-                    "name": "writeRiskScore",
-                    "outputs": [],
-                    "stateMutability": "nonpayable",
-                    "type": "function"
-                },
-                {
-                    "inputs": [
-                        {"internalType": "address", "name": "_contractAddress", "type": "address"},
-                        {"internalType": "string", "name": "_riskScore", "type": "string"},
-                        {"internalType": "uint8", "name": "_riskLevel", "type": "uint8"}
-                    ],
-                    "name": "updateRiskScore",
-                    "outputs": [],
-                    "stateMutability": "nonpayable",
-                    "type": "function"
-                },
-                {
-                    "inputs": [{"internalType": "address", "name": "_contractAddress", "type": "address"}],
-                    "name": "getRiskScore",
-                    "outputs": [{"internalType": "string", "name": "", "type": "string"}],
-                    "stateMutability": "view",
-                    "type": "function"
-                },
-                {
-                    "inputs": [{"internalType": "address", "name": "writer", "type": "address"}],
-                    "name": "isAuthorizedWriter",
-                    "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
-                    "stateMutability": "view",
-                    "type": "function"
+            // Try to load ABI from configuration file first
+            const configResponse = await fetch('/config/contract-config.json');
+            if (configResponse.ok) {
+                const config = await configResponse.json();
+                if (config.RESULTS_REGISTRY_ABI) {
+                    this.contractABI = JSON.parse(config.RESULTS_REGISTRY_ABI);
+                    console.log('Contract ABI loaded from configuration');
+                    return;
                 }
+            }
+            
+            // Fallback: Use the full ABI from the deployed contract
+            // This includes all functions, events, and error definitions
+            this.contractABI = [
+                {"type":"constructor","stateMutability":"nonpayable","inputs":[]},
+                {"type":"error","name":"OwnableInvalidOwner","inputs":[{"type":"address","name":"owner"}]},
+                {"type":"error","name":"OwnableUnauthorizedAccount","inputs":[{"type":"address","name":"account"}]},
+                {"type":"error","name":"ReentrancyGuardReentrantCall","inputs":[]},
+                {"type":"event","anonymous":false,"name":"OwnershipTransferred","inputs":[{"type":"address","name":"previousOwner","indexed":true},{"type":"address","name":"newOwner","indexed":true}]},
+                {"type":"event","anonymous":false,"name":"ScoreRecorded","inputs":[{"type":"address","name":"contractAddress","indexed":true},{"type":"string","name":"riskScore","indexed":false},{"type":"uint8","name":"riskLevel","indexed":false},{"type":"address","name":"recordedBy","indexed":true},{"type":"uint256","name":"timestamp","indexed":false}]},
+                {"type":"event","anonymous":false,"name":"WriterAuthorizationChanged","inputs":[{"type":"address","name":"writer","indexed":true},{"type":"bool","name":"authorized","indexed":false},{"type":"address","name":"changedBy","indexed":true}]},
+                {"type":"function","name":"MAX_RISK_SCORE_LENGTH","constant":true,"stateMutability":"view","payable":false,"inputs":[],"outputs":[{"type":"uint256","name":""}]},
+                {"type":"function","name":"getRiskLevel","constant":true,"stateMutability":"view","payable":false,"inputs":[{"type":"address","name":"_contractAddress"}],"outputs":[{"type":"uint8","name":""}]},
+                {"type":"function","name":"getRiskScore","constant":true,"stateMutability":"view","payable":false,"inputs":[{"type":"address","name":"_contractAddress"}],"outputs":[{"type":"string","name":""}]},
+                {"type":"function","name":"hasRiskScore","constant":true,"stateMutability":"view","payable":false,"inputs":[{"type":"address","name":"_contractAddress"}],"outputs":[{"type":"bool","name":""}]},
+                {"type":"function","name":"isAuthorizedWriter","constant":true,"stateMutability":"view","payable":false,"inputs":[{"type":"address","name":"writer"}],"outputs":[{"type":"bool","name":""}]},
+                {"type":"function","name":"owner","constant":true,"stateMutability":"view","payable":false,"inputs":[],"outputs":[{"type":"address","name":""}]},
+                {"type":"function","name":"renounceOwnership","stateMutability":"nonpayable","payable":false,"inputs":[],"outputs":[]},
+                {"type":"function","name":"setAuthorizedWriter","stateMutability":"nonpayable","payable":false,"inputs":[{"type":"address","name":"writer"},{"type":"bool","name":"authorized"}],"outputs":[]},
+                {"type":"function","name":"transferOwnership","stateMutability":"nonpayable","payable":false,"inputs":[{"type":"address","name":"newOwner"}],"outputs":[]},
+                {"type":"function","name":"updateRiskScore","stateMutability":"nonpayable","payable":false,"inputs":[{"type":"address","name":"_contractAddress"},{"type":"string","name":"_riskScore"},{"type":"uint8","name":"_riskLevel"}],"outputs":[]},
+                {"type":"function","name":"writeRiskScore","stateMutability":"nonpayable","payable":false,"inputs":[{"type":"address","name":"_contractAddress"},{"type":"string","name":"_riskScore"},{"type":"uint8","name":"_riskLevel"}],"outputs":[]}
             ];
+            
+            console.log('Contract ABI loaded from fallback implementation');
         } catch (error) {
             console.error('Failed to load contract ABI:', error);
             throw error;

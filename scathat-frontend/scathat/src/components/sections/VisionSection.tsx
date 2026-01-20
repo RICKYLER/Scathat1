@@ -35,7 +35,7 @@ const VisionSection = () => {
           <blockquote className="relative max-w-2xl mx-auto mb-12">
             <div className="absolute -left-4 -top-4 text-6xl text-primary/20">&quot;</div>
             <p className="text-2xl md:text-3xl font-medium italic text-foreground relative z-10">
-                                   "Don’t trust. Verify. Secure."
+              Don’t trust. Verify. Secure.
             </p>
             <div className="absolute -right-4 -bottom-4 text-6xl text-primary/20">&quot;</div>
           </blockquote>

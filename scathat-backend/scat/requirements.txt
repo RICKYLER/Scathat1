@@ -55,6 +55,3 @@ pytest-asyncio==0.24.0
 pytest-cov==5.0.0
 httpx==0.28.0
 python-multipart==0.0.16
-
-# Coinbase AgentKit for AI-powered contract analysis
-coinbase-agentkit>=0.1.0

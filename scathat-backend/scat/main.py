@@ -5,9 +5,8 @@ Simplified FastAPI application for blockchain contract scanning demo.
 
 import os
 import json
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
-# from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel, field_validator, Field
 import uvicorn
@@ -25,12 +24,11 @@ from slowapi.middleware import SlowAPIMiddleware
 # Import services
 from services.explorer_service import ExplorerService, ExplorerConfig
 from services.web3_service import Web3Service, Web3Config
-from services.agentkit_service import AgentKitService, AgentKitConfig
-from services.ai_aggregator_service import AIAggregatorService, ModelOutput, RiskLevel
+from services.ai_aggregator_service import AIAggregatorService, RiskLevel
 from services.pinecone_service import PineconeService
 from services.database_service import DatabaseService
 from services.scan_orchestrator_service import ScanOrchestratorService
-from services.ai_engine_service import AIEngineService, ModelResult
+from services.ai_engine_service import AIEngineService
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -87,14 +85,6 @@ try:
     )
     web3_service = Web3Service(web3_config)
     
-    # AgentKit Service Configuration
-    agentkit_service = AgentKitService(
-        api_url=os.getenv("AGENTKIT_API_URL", "https://api.agentkit.ai/v1"),
-        api_key=os.getenv("AGENTKIT_API_KEY", "demo_key"),
-        cdp_api_key=os.getenv("AGENTKIT_CDP_API_KEY"),
-        cdp_api_secret=os.getenv("AGENTKIT_CDP_API_SECRET")
-    )
-    
     # AI Aggregator Service
     ai_aggregator_service = AIAggregatorService()
     
@@ -108,9 +98,7 @@ try:
     ai_engine_service = AIEngineService()
     
     # Scan Orchestrator Service
-    ai_services = {
-        "agentkit": agentkit_service
-    }
+    ai_services = {}
     scan_orchestrator_service = ScanOrchestratorService(
         explorer_service=explorer_service,
         web3_service=web3_service,
@@ -185,71 +173,7 @@ async def health_check() -> Dict[str, str]:
     """
     return {"status": "healthy", "service": "scathat-api"}
 
-# Pydantic model for AgentKit analysis request
-class AgentKitAnalysisRequest(BaseModel):
-    """Request model for AgentKit contract analysis."""
-    contract_address: str
-    chain_id: int = 84532  # Default to Base Sepolia
-    analysis_type: str = "security_risk"
 
-# Pydantic model for AgentKit analysis response
-class AgentKitAnalysisResponse(BaseModel):
-    """Response model for AgentKit contract analysis."""
-    contract_address: str
-    risk_score: str
-    risk_level: str
-    risk_level_value: int
-    confidence: float
-    vulnerabilities: list
-    analysis_summary: str
-    source: str
-
-@app.post("/analyze/agentkit", response_model=AgentKitAnalysisResponse)
-async def analyze_with_agentkit(request: AgentKitAnalysisRequest) -> AgentKitAnalysisResponse:
-    """
-    Analyze a contract using AgentKit AI-powered security analysis.
-    
-    Args:
-        request (AgentKitAnalysisRequest): Contract analysis request
-        
-    Returns:
-        AgentKitAnalysisResponse: Detailed AI analysis results
-        
-    Raises:
-        HTTPException: If analysis fails or contract address is invalid
-    """
-    try:
-        # Validate contract address format
-        if not request.contract_address.startswith("0x") or len(request.contract_address) != 42:
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid contract address format. Must start with '0x' and be 42 characters long."
-            )
-        
-        # Analyze contract with AgentKit
-        analysis_result = await agentkit_service.analyze_contract(
-            request.contract_address, 
-            request.chain_id
-        )
-        
-        return AgentKitAnalysisResponse(
-            contract_address=request.contract_address,
-            risk_score=analysis_result["risk_score"],
-            risk_level=agentkit_service.get_risk_level_name(analysis_result["risk_level"]),
-            risk_level_value=analysis_result["risk_level_value"],
-            confidence=analysis_result["confidence"],
-            vulnerabilities=analysis_result["vulnerabilities"],
-            analysis_summary=analysis_result["analysis_summary"],
-            source=analysis_result["source"]
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"AgentKit analysis failed: {str(e)}"
-        )
 
 @app.post("/scan", response_model=ScanResponse)
 async def scan_contract(request: ScanRequest) -> ScanResponse:
@@ -817,166 +741,7 @@ class ActionResponse(BaseModel):
     message: str
     action: str
 
-@app.post("/agent/block", response_model=ActionResponse)
-@limiter.limit("10/minute")  
-async def block_contract(request: Request, block_request: BlockRequest) -> ActionResponse:
-    """
-    Block a contract using AgentKit protection.
-    
-    This endpoint blocks a contract address from being interacted with
-    through AgentKit-protected wallets and dApps.
-    
-    Args:
-        block_request (BlockRequest): Block request with contract details
-        
-    Returns:
-        ActionResponse: Action status and message
-    """
-    try:
-        # Validate contract address
-        if not block_request.contract_address.startswith("0x") or len(block_request.contract_address) != 42:
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid contract address format"
-            )
-        
-        # Call AgentKit service to block contract
-        success = await agentkit_service.block_contract(
-            block_request.contract_address,
-            block_request.chain_id,
-            block_request.reason
-        )
-        
-        if success:
-            return ActionResponse(
-                success=True,
-                message=f"Contract {block_request.contract_address} blocked successfully",
-                action="block"
-            )
-        else:
-            raise HTTPException(
-                status_code=500,
-                detail="Failed to block contract"
-            )
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Block action failed: {str(e)}"
-        )
 
-@app.post("/agent/limit", response_model=ActionResponse)
-@limiter.limit("10/minute")
-async def set_approval_limit(request: Request, limit_request: LimitRequest) -> ActionResponse:
-    """
-    Set approval limits for a contract using AgentKit protection.
-    
-    This endpoint sets maximum approval limits for token interactions
-    with a specific contract through AgentKit-protected wallets.
-    
-    Args:
-        limit_request (LimitRequest): Limit request with contract and token details
-        
-    Returns:
-        ActionResponse: Action status and message
-    """
-    try:
-        # Validate contract addresses
-        for addr in [limit_request.contract_address, limit_request.token_address]:
-            if not addr.startswith("0x") or len(addr) != 42:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Invalid contract address format"
-                )
-        
-        # Validate amount
-        if limit_request.max_amount <= 0:
-            raise HTTPException(
-                status_code=400,
-                detail="Max amount must be positive"
-            )
-        
-        # Call AgentKit service to set approval limit
-        success = await agentkit_service.set_approval_limit(
-            limit_request.contract_address,
-            limit_request.chain_id,
-            limit_request.token_address,
-            limit_request.max_amount
-        )
-        
-        if success:
-            return ActionResponse(
-                success=True,
-                message=f"Approval limit set for {limit_request.contract_address}: {limit_request.max_amount} of {limit_request.token_address}",
-                action="limit"
-            )
-        else:
-            raise HTTPException(
-                status_code=500,
-                detail="Failed to set approval limit"
-            )
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Limit action failed: {str(e)}"
-        )
-
-@app.post("/agent/pause", response_model=ActionResponse)
-@limiter.limit("5/minute")  # Lower limit for pause actions
-async def pause_protection(request: Request, pause_request: PauseRequest) -> ActionResponse:
-    """
-    Pause AgentKit protection temporarily.
-    
-    This endpoint pauses all AgentKit protection features for a specified
-    duration, allowing unrestricted interactions.
-    
-    Args:
-        pause_request (PauseRequest): Pause request with duration
-        
-    Returns:
-        ActionResponse: Action status and message
-    """
-    try:
-        # Validate duration
-        if pause_request.duration_minutes <= 0:
-            raise HTTPException(
-                status_code=400,
-                detail="Duration must be positive"
-            )
-        
-        if pause_request.duration_minutes > 1440:  # 24 hours
-            raise HTTPException(
-                status_code=400,
-                detail="Duration cannot exceed 24 hours"
-            )
-        
-        # Call AgentKit service to pause protection
-        success = await agentkit_service.pause_protection(pause_request.duration_minutes)
-        
-        if success:
-            return ActionResponse(
-                success=True,
-                message=f"Protection paused for {pause_request.duration_minutes} minutes",
-                action="pause"
-            )
-        else:
-            raise HTTPException(
-                status_code=500,
-                detail="Failed to pause protection"
-            )
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Pause action failed: {str(e)}"
-        )
 
 # Request Logging Middleware
 @app.middleware("http")
